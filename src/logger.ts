@@ -86,11 +86,15 @@ class Logger {
     if (this.useColor) {
       line = `${LEVEL_COLOR[level]}${line}${COLORS.reset}`;
     }
-    // 控制台
+    // 控制台输出：
+    // - MCP 场景（非 TTY 子进程）：全部走 stderr，保证 stdout 纯净（stdout 是 MCP 协议通道）
+    // - 交互式 CLI（TTY）：info/warn/debug 走 stdout，error 走 stderr
     if (level === "error") {
       process.stderr.write(line + "\n");
-    } else {
+    } else if (this.useColor) {
       process.stdout.write(line + "\n");
+    } else {
+      process.stderr.write(line + "\n");
     }
     // 文件（不含颜色）
     if (this.filePath) {

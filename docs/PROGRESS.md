@@ -10,7 +10,7 @@
 |------|------|:----:|------|
 | Phase 1 | 基础设施 | ✅ 完成 | 项目骨架 / CLI 封装 / 版本检测 / 配置中心 |
 | Phase 2 | Spine 3.8.75 核心封装 | ✅ 完成 | project-reader / export / import / json-handler |
-| Phase 3 | MCP 工具开发 - 基础 | ⬜ 未开始 | server / registry / 15 个基础工具 |
+| Phase 3 | MCP 工具开发 - 基础 | ✅ 完成 | server / registry / 21 个基础工具 |
 | Phase 4 | 高级骨骼模块 | ⬜ 未开始 | 约束 / 网格 / 曲线 / 事件 |
 | Phase 5 | 图片拆分 + 骨骼构建 | ⬜ 未开始 | split_atlas / build_skeleton |
 | Phase 6 | Cocos 集成 + 面板 UI | ⬜ 未开始 | 扩展面板 / Vue3 |
@@ -196,4 +196,85 @@ node dist/index.js clean "D:/cocos/SpinePro3.8.75/examples/goblins/goblins-pro.s
 
 **预期**：export 各导出 1 个文件；reader 显示结构化信息；roundtrip 第 5 步显示 ✅ 回读一致；import 提示创建新项目并给出骨架名；clean 显示移除关键帧数（原项目不被改动）。
 
-**下一步**：Phase 3（MCP 服务器 server.ts + registry.ts + 基础工具：info / export / import / control_bone / split_atlas 等，真正接入 AI 对话）。
+---
+
+## Phase 3：MCP 工具开发 - 基础（已完成）
+
+### 目标
+构建 MCP stdio 服务器，注册 21 个基础工具，实现「AI 对话 → 工具调用 → Spine 操作」闭环。
+
+### 任务清单
+
+| # | 任务 | 状态 | 验证结果 |
+|---|------|:----:|---------|
+| 3.1 | server.ts + registry.ts（MCP stdio） | ✅ | 协议级测试 10/10 |
+| 3.2 | info / inspect / list-animations 工具 | ✅ | 真实项目读取成功 |
+| 3.3 | export / import 工具 | ✅ | 导出 + 创建新项目 |
+| 3.4 | bones-control 工具（核心） | ✅ | 改帧回读 angle 一致 |
+| 3.5 | clean / add_simple_animation 工具 | ✅ | 清理 + 模板动画 |
+| 3.6 | rename-slot / batch-rename 工具 | ✅ | 重命名 + 正则批量 |
+| 3.7 | add/delete-bone / add/delete-slot 工具 | ✅ | 增删操作 + 权重网格守卫 |
+| 3.8 | set-attachment / set-skin 工具 | ✅ | 换装 + 皮肤管理 |
+| 3.9 | duplicate/delete/rename-animation 工具 | ✅ | 动画管理 |
+| 3.10 | rollback 工具 | ✅ | 备份列表 |
+| 3.11 | render-preview 工具 | ⚠️ 占位 | 依赖 Phase 4 渲染方案 |
+
+### 当前进度明细（2026-08-22 完成 Phase 3）
+
+**已完成文件**
+```
+src/server.ts                    — MCP Server（stdio），list/call/error 处理
+src/tools/base.tool.ts           — 工具基类（zod schema + 统一错误捕获）
+src/tools/registry.ts            — 21 个工具注册表
+src/tools/*.tool.ts (21个)       — info/inspect/list-animations/export/import/clean/
+                                     bones-control/animation-generate/rename-slot/batch-rename/
+                                     add-bone/delete-bone/add-slot/delete-slot/set-attachment/
+                                     set-skin/duplicate-animation/delete-animation/
+                                     rename-animation/rollback/render-preview
+src/spine/modify-service.ts      — Round-Trip 统一封装 + readJsonForExport
+src/index.ts                     — 新增 mcp 子命令（启动 stdio 服务器）
+tests/self-test-tools.cjs        — 工具级自测（37 断言）
+tests/self-test-mcp.cjs          — MCP 协议级自测（10 断言）
+```
+
+**验证结果（本机实测）**
+| 测试 | 结果 |
+|-------|:--:|
+| 工具级自测 tests/self-test-tools.cjs | ✅ 37/37（含错误路径、权重网格守卫、回读验证） |
+| MCP 协议级自测 tests/self-test-mcp.cjs | ✅ 10/10（listTools 21 个 + callTool + 参数错误 + 未知工具 + 改帧回读） |
+| Phase 1+2 CLI 回归（check/version/roundtrip/reader） | ✅ 全部正常 |
+| `node dist/index.js mcp` 启动 stdio | ✅ Client 可连接 |
+
+### ⚠️ 自测发现并修复的问题
+1. **exportJsonForRead 临时目录过早删除** → 只读工具读不到文件。改为 `readJsonForExport` 返回解析对象后清理。✅
+2. **set_attachment 覆盖附件数据**：原实现把附件条目覆写为 `{}`，丢失 region/mesh 数据导致 Spine 拒绝。改为「更新插槽默认附件 + 保留已有数据」，并校验附件名存在（不存在 → E_ATTACHMENT_NOT_FOUND 并列出可用附件）。✅
+3. **delete_bone 与权重网格**：实测发现 Spine 3.8 加权网格 vertices 格式为 `[count, (boneIndex,x,y,weight)×count]`，删除任何骨骼都会使顶点骨骼索引失效（`IndexOutOfBounds`）。Phase 3 实现**守卫**：项目含权重网格时 delete_bone 返回明确错误；完整重排索引在 Phase 4/5（做网格时）实现。✅ 已守卫
+4. **get_project_info 错误路径** → 补文件存在性校验，返回 E_INVALID_ARGUMENT。✅
+5. **import 到不存在目标** → 支持创建新项目。✅
+
+### 用户接入步骤（AI 客户端配置）
+
+在 Trae / Cursor / Claude Desktop 的 MCP 配置中添加：
+
+```json
+{
+  "mcpServers": {
+    "spine-mcp": {
+      "command": "node",
+      "args": ["D:/cocos/spine-mcp-server/dist/index.js", "mcp"],
+      "env": {
+        "SPINE_EXE": "D:/cocos/SpinePro3.8.75/Spine.com",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
+```
+
+配置后 AI 客户端应能列出 21 个 `spine_*` 工具。典型对话示例：
+- "查看 D:/cocos/SpinePro3.8.75/examples/hero/hero-pro.spine 的项目信息"
+- "把 goblins-pro.spine 的 walk 动画 root 骨骼第 0 帧旋转改为 15 度"（会自动备份）
+
+> ⚠️ **需要用户验证的部分**：Trae/Cursor/Claude Desktop 实际连接配置、工具在 AI 对话中的真实调用体验。这部分我无法自测。
+
+**下一步**：Phase 4（高级骨骼模块：约束 IK/变换/路径、网格 edit_mesh、曲线/事件/绘制顺序、list-events/constraints/attachments/animation-detail 查询、图片渲染 render_preview）。

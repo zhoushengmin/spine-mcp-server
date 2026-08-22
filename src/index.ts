@@ -27,6 +27,7 @@ import { cleanProject } from "./spine/cleanup-service";
 import { updateBoneKeyframe, frameToTime } from "./spine/json-handler";
 import { toSpineError } from "./utils/error-codes";
 import { createTempDir, removeDir, readJsonFile, writeJsonFile, ensureDir } from "./utils/file-utils";
+import { startMcpServer } from "./server";
 
 const HELP_TEXT = `
 spine-mcp-server — Spine 3.8.75 MCP 服务器（Phase 1 + Phase 2）
@@ -43,7 +44,8 @@ spine-mcp-server — Spine 3.8.75 MCP 服务器（Phase 1 + Phase 2）
   import <spine> <json>          测试导入（自动备份 + -r 导入）
   clean <spine>       测试 -m 清理（在临时副本上执行）
   roundtrip <spine> <outdir>     完整往返：导出→改骨骼帧→导入→验证
-  help                显示本帮助
+  mcp                         启动 MCP stdio 服务器（供 Trae/Cursor 等 AI 客户端连接）
+  help                        显示本帮助
 
 环境变量（见 .env.example）:
   SPINE_EXE            Spine 命令行工具路径
@@ -240,6 +242,10 @@ async function main(): Promise<void> {
       case "roundtrip":
         requireArg(args, 2, "roundtrip <spine> <outdir>");
         await cmdRoundtrip(args[1], args[2]);
+        break;
+      case "mcp":
+        // 启动 MCP stdio 服务器（长驻进程）
+        await startMcpServer();
         break;
       case "help":
       case "-h":

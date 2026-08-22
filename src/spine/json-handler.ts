@@ -283,58 +283,9 @@ function isWeightedMesh(att: any, boneCount: number): boolean {
 }
 
 /**
- * 删除骨骼（含子骨骼递归；移除关联插槽绑定）。
- * ⚠️ 若项目存在权重网格（weighted mesh），删除任何骨骼都会使其顶点骨骼索引失效，
- * 需要自动重排索引（Phase 4/5 提供），当前返回明确错误。
+ * 删除骨骼（含子骨骼递归；自动重排权重网格顶点骨骼索引）。
+ * （完整实现见文件末尾；此处旧守卫版本已移除）
  */
-export function deleteBone(json: any, name: string): { removed: string[] } {
-  if (!findBone(json, name)) {
-    throw new SpineError(ErrorCode.BONE_NOT_FOUND, `骨骼 "${name}" 不存在。`);
-  }
-  // 收集自身 + 全部子孙
-  const removed: string[] = [];
-  const collect = (boneName: string): void => {
-    removed.push(boneName);
-    (json.bones ?? [])
-      .filter((b: any) => b.parent === boneName)
-      .forEach((b: any) => collect(b.name));
-  };
-  collect(name);
-  const removedSet = new Set(removed);
-
-  // 权重网格守卫：任何加权网格存在时禁止删除骨骼（骨骼索引会移位）
-  const boneCount = (json.bones ?? []).length;
-  for (const skin of skinsList(json)) {
-    for (const slotAtts of Object.values<any>(skin.attachments ?? {})) {
-      for (const att of Object.values<any>(slotAtts ?? {})) {
-        if (isWeightedMesh(att, boneCount)) {
-          throw new SpineError(
-            ErrorCode.PART_TYPE_INVALID,
-            `无法删除骨骼 "${name}"：项目包含权重网格（weighted mesh）附件。`,
-            "删除骨骼会导致权重网格顶点的骨骼索引失效，自动重排索引能力将在后续版本提供；请先在 Spine 编辑器中处理相关网格。"
-          );
-        }
-      }
-    }
-  }
-
-  json.bones = (json.bones ?? []).filter((b: any) => !removedSet.has(b.name));
-
-  // 移除绑在这些骨骼上的插槽
-  json.slots = (json.slots ?? []).filter((s: any) => !removedSet.has(s.bone));
-
-  // 清理动画中这些骨骼的时间轴
-  if (json.animations) {
-    for (const anim of Object.values<any>(json.animations)) {
-      if (anim.bones) {
-        for (const r of removed) {
-          delete anim.bones[r];
-        }
-      }
-    }
-  }
-  return { removed };
-}
 
 /** 获取皮肤列表（兼容数组/对象格式），统一返回 [{name, attachments}] */
 function skinsList(json: any): Array<{ name: string; attachments: any }> {
@@ -659,4 +610,621 @@ export function deleteSkin(json: any, name: string): void {
 /** 设置默认皮肤：确保存在名为 default 的皮肤 */
 export function setDefaultSkin(json: any, name = "default"): void {
   ensureSkin(json, name);
+}
+
+// ============================================================
+// Phase 4：约束系统（IK / Transform / Path）
+// 导出 JSON 结构（实测）：
+//   json.ik[].transform[].path[] = { name, order, bones[], target, ...props }
+//   动画时间轴：animations.<name>.<type>.<constraintName> = [{time, mix, ...}]
+// ============================================================
+
+/** 查找约束 */
+export function findConstraint(json: any, type: "ik" | "transform" | "path", name: string): any {
+  return (json[type] ?? []).find((c: any) => c.name === name);
+}
+
+function requireConstraint(json: any, type: "ik" | "transform" | "path", name: string): any {
+  const c = findConstraint(json, type, name);
+  if (!c) {
+    throw new SpineError(ErrorCode.CONSTRAINT_NOT_FOUND, `${typeLabel(type)}约束 "${name}" 不存在。`);
+  }
+  return c;
+}
+
+function typeLabel(type: "ik" | "transform" | "path"): string {
+  return type === "ik" ? "IK" : type === "transform" ? "变换" : "路径";
+}
+
+/** 校验约束引用的骨骼与目标存在 */
+function assertConstraintRefs(json: any, type: "ik" | "transform" | "path", bones: string[], target: string): void {
+  for (const b of bones) {
+    if (!findBone(json, b)) {
+      throw new SpineError(ErrorCode.BONE_NOT_FOUND, `骨骼 "${b}" 不存在（${typeLabel(type)}约束 ${type} 引用）。`);
+    }
+  }
+  if (type === "ik" || type === "transform") {
+    if (!findBone(json, target)) {
+      throw new SpineError(ErrorCode.BONE_NOT_FOUND, `目标骨骼 "${target}" 不存在（${typeLabel(type)}约束引用）。`);
+    }
+  }
+  // path 约束的 target 是路径附件，不强制校验（可能是已存在的附件名）
+}
+
+/** 新增约束（通用） */
+function addConstraint(json: any, type: "ik" | "transform" | "path", name: string, bones: string[], target: string, props: Record<string, any>): void {
+  if (findConstraint(json, type, name)) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `${typeLabel(type)}约束 "${name}" 已存在。`);
+  }
+  assertConstraintRefs(json, type, bones, target);
+  json[type] ??= [];
+  const entry: any = { name, bones: [...bones], target, ...props };
+  // order 必须在所有约束类型间唯一递增（Spine 按 order 排序应用约束）
+  let maxOrder = -1;
+  for (const t of ["ik", "transform", "path"] as const) {
+    for (const c of json[t] ?? []) {
+      if (typeof c.order === "number" && c.order > maxOrder) {
+        maxOrder = c.order;
+      }
+    }
+  }
+  entry.order = maxOrder + 1;
+  json[type].push(entry);
+}
+
+/** 新增 IK 约束 */
+export function addIk(json: any, name: string, bones: string[], target: string, props: { bendPositive?: boolean; compress?: boolean; stretch?: boolean; mix?: number; skinName?: string } = {}): void {
+  const { bendPositive, compress, stretch, mix, skinName } = props;
+  const extra: Record<string, any> = {};
+  if (bendPositive !== undefined) extra.bendPositive = bendPositive;
+  if (compress !== undefined) extra.compress = compress;
+  if (stretch !== undefined) extra.stretch = stretch;
+  if (mix !== undefined) extra.mix = mix;
+  if (skinName !== undefined) extra.skin = skinName;
+  addConstraint(json, "ik", name, bones, target, extra);
+}
+
+/** 新增变换约束（offset 字段按导出格式：rotation/x/y/scaleX/scaleY/shearY） */
+export function addTransform(
+  json: any,
+  name: string,
+  bones: string[],
+  target: string,
+  props: {
+    local?: boolean; relative?: boolean;
+    offsetRotation?: number; offsetX?: number; offsetY?: number;
+    offsetScaleX?: number; offsetScaleY?: number; offsetShearY?: number;
+    rotateMix?: number; translateMix?: number; scaleMix?: number; shearMix?: number;
+  } = {}
+): void {
+  const extra: Record<string, any> = {};
+  const map: Record<string, string> = {
+    offsetRotation: "rotation", offsetX: "x", offsetY: "y",
+    offsetScaleX: "scaleX", offsetScaleY: "scaleY", offsetShearY: "shearY",
+  };
+  for (const [k, v] of Object.entries(map)) {
+    if (props[k as keyof typeof props] !== undefined) extra[v] = props[k as keyof typeof props];
+  }
+  if (props.local !== undefined) extra.local = props.local;
+  if (props.relative !== undefined) extra.relative = props.relative;
+  if (props.rotateMix !== undefined) extra.rotateMix = props.rotateMix;
+  if (props.translateMix !== undefined) extra.translateMix = props.translateMix;
+  if (props.scaleMix !== undefined) extra.scaleMix = props.scaleMix;
+  if (props.shearMix !== undefined) extra.shearMix = props.shearMix;
+  addConstraint(json, "transform", name, bones, target, extra);
+}
+
+/** 新增路径约束 */
+export function addPath(
+  json: any,
+  name: string,
+  bones: string[],
+  target: string,
+  props: {
+    positionMode?: "fixed" | "percent"; spacingMode?: "length" | "fixed" | "percent";
+    rotateMode?: "tangent" | "chain" | "chainScale"; mixRotate?: number; mixX?: number; mixY?: number;
+    position?: number; spacing?: number; rotate?: number;
+  } = {}
+): void {
+  const extra: Record<string, any> = {};
+  for (const k of ["positionMode", "spacingMode", "rotateMode", "mixRotate", "mixX", "mixY", "position", "spacing", "rotate"] as const) {
+    if (props[k] !== undefined) extra[k] = props[k];
+  }
+  addConstraint(json, "path", name, bones, target, extra);
+}
+
+/** 删除约束 */
+export function deleteConstraint(json: any, type: "ik" | "transform" | "path", name: string): void {
+  requireConstraint(json, type, name);
+  json[type] = (json[type] ?? []).filter((c: any) => c.name !== name);
+  // 移除动画时间轴
+  if (json.animations) {
+    for (const anim of Object.values<any>(json.animations)) {
+      if (anim[type] && name in anim[type]) {
+        delete anim[type][name];
+      }
+    }
+  }
+}
+
+/** 修改约束 Setup 属性（合并） */
+export function setConstraintSetup(json: any, type: "ik" | "transform" | "path", name: string, props: Record<string, any>): void {
+  const c = requireConstraint(json, type, name);
+  Object.assign(c, props);
+}
+
+/** 写约束动画时间轴关键帧：animations.<name>.<type>.<constraintName> = [{time, ...}] */
+export function updateConstraintKeyframe(
+  json: any,
+  type: "ik" | "transform" | "path",
+  animationName: string,
+  name: string,
+  time: number,
+  changes: Record<string, any>
+): number {
+  if (!json.animations?.[animationName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 不存在。`);
+  }
+  requireConstraint(json, type, name);
+  const anim = json.animations[animationName];
+  anim[type] ??= {};
+  const tl = (anim[type][name] ??= []);
+  return upsertTimelineFrame(tl, time, {}, changes);
+}
+
+// ============================================================
+// Phase 4：附件管理 + 网格
+// ============================================================
+
+/** 获取某皮肤中指定插槽的附件映射 */
+function getSlotAttachmentMap(json: any, slotName: string, skinName: string): Record<string, any> | undefined {
+  const skin = findSkin(json, skinName);
+  return skin?.attachments?.[slotName];
+}
+
+/** 新增附件（region/mesh/bbox/path/point/clipping） */
+export function addAttachment(
+  json: any,
+  slotName: string,
+  attachmentName: string,
+  type: string,
+  data: Record<string, any> = {},
+  skinName = "default"
+): void {
+  if (!findSlot(json, slotName)) {
+    throw new SpineError(ErrorCode.SLOT_NOT_FOUND, `插槽 "${slotName}" 不存在。`);
+  }
+  const validTypes = ["region", "mesh", "boundingbox", "path", "point", "clipping"];
+  if (!validTypes.includes(type)) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `不支持的附件类型：${type}`, `支持：${validTypes.join("、")}。`);
+  }
+  const skinAttachments = ensureSkinAttachments(json, skinName);
+  const slotAtts = (skinAttachments[slotName] ??= {});
+  if (slotAtts[attachmentName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `附件 "${attachmentName}" 已存在于插槽 "${slotName}"。`);
+  }
+  slotAtts[attachmentName] = { type, ...data };
+}
+
+/** 删除附件 */
+export function deleteAttachment(json: any, slotName: string, attachmentName: string, skinName = "default"): void {
+  const map = getSlotAttachmentMap(json, slotName, skinName);
+  if (!map || !map[attachmentName]) {
+    throw new SpineError(ErrorCode.ATTACHMENT_NOT_FOUND, `附件 "${attachmentName}" 不存在于插槽 "${slotName}"（皮肤 ${skinName}）。`);
+  }
+  delete map[attachmentName];
+  // 若插槽默认附件指向它则清除
+  const slot = findSlot(json, slotName);
+  if (slot?.attachment === attachmentName) {
+    delete slot.attachment;
+  }
+}
+
+/** 设置附件变换（region 附件：x/y/rotation/scaleX/scaleY/color/width/height） */
+export function setAttachmentTransform(
+  json: any,
+  slotName: string,
+  attachmentName: string,
+  props: Record<string, any>,
+  skinName = "default"
+): void {
+  const map = getSlotAttachmentMap(json, slotName, skinName);
+  const att = map?.[attachmentName];
+  if (!att) {
+    throw new SpineError(ErrorCode.ATTACHMENT_NOT_FOUND, `附件 "${attachmentName}" 不存在于插槽 "${slotName}"（皮肤 ${skinName}）。`);
+  }
+  Object.assign(att, props);
+}
+
+/** 编辑网格 Setup（vertices/uvs/triangles/width/height/hull） */
+export function editMeshSetup(json: any, slotName: string, attachmentName: string, data: Record<string, any>, skinName = "default"): void {
+  const map = getSlotAttachmentMap(json, slotName, skinName);
+  const att = map?.[attachmentName];
+  if (!att) {
+    throw new SpineError(ErrorCode.ATTACHMENT_NOT_FOUND, `附件 "${attachmentName}" 不存在于插槽 "${slotName}"（皮肤 ${skinName}）。`);
+  }
+  if (att.type !== "mesh") {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `附件 "${attachmentName}" 不是网格（类型 ${att.type}）。`);
+  }
+  Object.assign(att, data);
+}
+
+/** 写网格 FFD 变形关键帧：animations.<name>.deform.<skin>.<slot>.<attachment> = [{time, vertices}] */
+export function updateDeformKeyframe(
+  json: any,
+  animationName: string,
+  skinName: string,
+  slotName: string,
+  attachmentName: string,
+  time: number,
+  vertices: number[]
+): number {
+  if (!json.animations?.[animationName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 不存在。`);
+  }
+  const anim = json.animations[animationName];
+  anim.deform ??= {};
+  const bySlot = (anim.deform[skinName] ??= {});
+  const byAtt = (bySlot[slotName] ??= {});
+  const tl = (byAtt[attachmentName] ??= []);
+  return upsertTimelineFrame(tl, time, {}, { vertices });
+}
+
+/** 写插槽动画时间轴关键帧（attachment / color） */
+export function updateSlotKeyframe(
+  json: any,
+  animationName: string,
+  slotName: string,
+  time: number,
+  changes: { attachment?: string; color?: string }
+): number {
+  if (!json.animations?.[animationName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 不存在。`);
+  }
+  const anim = json.animations[animationName];
+  anim.slots ??= {};
+  const slotTl = (anim.slots[slotName] ??= {});
+  let affected = 0;
+  if (changes.attachment !== undefined) {
+    (slotTl.attachment ??= []);
+    affected += upsertTimelineFrame(slotTl.attachment, time, {}, { name: changes.attachment });
+  }
+  if (changes.color !== undefined) {
+    (slotTl.color ??= []);
+    affected += upsertTimelineFrame(slotTl.color, time, {}, { color: changes.color });
+  }
+  return affected;
+}
+
+// ============================================================
+// Phase 4：事件 / 绘制顺序 / 曲线 / 动画时长
+// ============================================================
+
+/** 定义事件（json.events.<name> = { int, float, string }） */
+export function addEvent(json: any, name: string, values: { int?: number; float?: number; string?: string } = {}): void {
+  json.events ??= {};
+  if (json.events[name]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `事件 "${name}" 已存在。`);
+  }
+  const def: Record<string, any> = {};
+  if (values.int !== undefined) def.int = values.int;
+  if (values.float !== undefined) def.float = values.float;
+  if (values.string !== undefined) def.string = values.string;
+  json.events[name] = def;
+}
+
+/** 在动画指定时间添加事件关键帧：animations.<name>.events = [{time, name, int, float, string}] */
+export function addEventKeyframe(
+  json: any,
+  animationName: string,
+  time: number,
+  eventName: string,
+  values: { int?: number; float?: number; string?: string } = {}
+): void {
+  if (!json.animations?.[animationName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 不存在。`);
+  }
+  const anim = json.animations[animationName];
+  const events = (anim.events ??= []);
+  const frame: any = { time, name: eventName };
+  if (values.int !== undefined) frame.int = values.int;
+  if (values.float !== undefined) frame.float = values.float;
+  if (values.string !== undefined) frame.string = values.string;
+  events.push(frame);
+  events.sort((a: any, b: any) => a.time - b.time);
+}
+
+/**
+ * 设置绘制顺序关键帧：animations.<name>.draworder = [{time, offsets:[{slot, offset}]}]
+ * ⚠️ 实测：offsets 条目必须按「插槽在 slots 数组中的原始顺序」升序排列，
+ *    每个条目 offset = 该插槽在目标新顺序中的位置。
+ */
+export function setDrawOrder(json: any, animationName: string, time: number, slots: string[]): void {
+  if (!json.animations?.[animationName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 不存在。`);
+  }
+  const anim = json.animations[animationName];
+  const drawOrder = (anim.draworder ??= []);
+  // 计算每个插槽的原始索引
+  const slotIndex = new Map<string, number>((json.slots ?? []).map((s: any, i: number) => [s.name, i] as [string, number]));
+  const offsets = slots.map((slot, index) => ({ slot, offset: index }));
+  offsets.sort((a, b) => (slotIndex.get(a.slot) ?? Number.MAX_SAFE_INTEGER) - (slotIndex.get(b.slot) ?? Number.MAX_SAFE_INTEGER));
+  upsertTimelineFrame(drawOrder, time, {}, { offsets });
+}
+
+/**
+ * 设置关键帧插值曲线：timelinePath 形如 "bones.torso.rotate" / "slots.head.attachment" / "bones.root.translate"
+ * curve: "linear"（默认）| "stepped" | "bezier"
+ */
+export function setCurve(
+  json: any,
+  animationName: string,
+  timelinePath: string,
+  keyframeIndex: number,
+  curve: "linear" | "stepped" | "bezier",
+  bezier?: { c1x: number; c1y: number; c2x: number; c2y: number }
+): void {
+  if (!json.animations?.[animationName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 不存在。`);
+  }
+  // 解析路径：按 . 分割，取前 2 段为分类，最后一段为时间轴名
+  const parts = timelinePath.split(".");
+  if (parts.length < 2) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `时间轴路径格式错误：${timelinePath}`, '形如 "bones.torso.rotate"。');
+  }
+  const category = parts[0]; // bones | slots | ik | transform | path
+  const timelineName = parts[parts.length - 1];
+  const ownerName = parts.slice(1, parts.length - 1).join(".");
+  const anim = json.animations[animationName];
+  const owner = anim[category]?.[ownerName];
+  const tl = owner?.[timelineName];
+  if (!Array.isArray(tl)) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `未找到时间轴 "${timelinePath}"。`);
+  }
+  const frame = tl[keyframeIndex];
+  if (!frame) {
+    throw new SpineError(ErrorCode.FRAME_OUT_OF_RANGE, `时间轴 "${timelinePath}" 第 ${keyframeIndex} 帧不存在。`, `该时间轴共 ${tl.length} 帧。`);
+  }
+  if (curve === "stepped") {
+    frame.curve = "stepped";
+  } else if (curve === "bezier") {
+    if (!bezier) {
+      throw new SpineError(ErrorCode.INVALID_ARGUMENT, "bezier 曲线需要提供 c1x/c1y/c2x/c2y。");
+    }
+    frame.curve = [bezier.c1x, bezier.c1y, bezier.c2x, bezier.c2y];
+  } else {
+    delete frame.curve;
+  }
+}
+
+/** 缩放动画全部时间轴，使时长变为 targetDuration */
+export function scaleAnimationDuration(json: any, animationName: string, targetDuration: number): number {
+  if (!json.animations?.[animationName]) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 不存在。`);
+  }
+  if (targetDuration <= 0) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, "目标时长必须 > 0。");
+  }
+  const anim = json.animations[animationName];
+  let maxTime = 0;
+  const collect = (obj: any): void => {
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        if (item && typeof item === "object" && typeof item.time === "number" && item.time > maxTime) {
+          maxTime = item.time;
+        }
+      }
+      return;
+    }
+    if (obj && typeof obj === "object") {
+      for (const k of Object.keys(obj)) collect(obj[k]);
+    }
+  };
+  collect(anim);
+  if (maxTime <= 0) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, `动画 "${animationName}" 没有可缩放的时间轴。`);
+  }
+  const ratio = targetDuration / maxTime;
+  const scaleTimes = (obj: any): void => {
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        if (item && typeof item === "object" && typeof item.time === "number") {
+          item.time = item.time * ratio;
+        }
+      }
+      return;
+    }
+    if (obj && typeof obj === "object") {
+      for (const k of Object.keys(obj)) scaleTimes(obj[k]);
+    }
+  };
+  scaleTimes(anim);
+  return Math.round(maxTime * ratio * 100) / 100;
+}
+
+// ============================================================
+// Phase 4：权重网格骨骼索引重排（解除 delete_bone 守卫）
+// 加权网格 vertices 格式：[count, (boneIndex,x,y,weight)×count, count, ...]
+// ============================================================
+
+/** 精确重排（正确处理 count 修正）：对单个附件做重排 */
+function reindexAttachmentWeights(att: any, oldToNew: Map<number, number | null>): void {
+  const v = att.vertices;
+  const out: number[] = [];
+  let i = 0;
+  while (i < v.length) {
+    const count = v[i];
+    if (!Number.isInteger(count) || count < 1 || i + 1 + count * 4 > v.length) {
+      out.push(...v.slice(i));
+      break;
+    }
+    i++;
+    const influences: number[] = [];
+    for (let k = 0; k < count; k++) {
+      const bi = v[i];
+      const mapped = oldToNew.get(bi);
+      if (mapped !== undefined && mapped !== null) {
+        influences.push(mapped, v[i + 1], v[i + 2], v[i + 3]);
+      }
+      i += 4;
+    }
+    if (influences.length > 0) {
+      out.push(influences.length / 4);
+      out.push(...influences);
+    }
+  }
+  att.vertices = out;
+}
+
+/** 删除骨骼（含子骨骼递归；自动重排权重网格顶点骨骼索引） */
+export function deleteBone(json: any, name: string): { removed: string[] } {
+  if (!findBone(json, name)) {
+    throw new SpineError(ErrorCode.BONE_NOT_FOUND, `骨骼 "${name}" 不存在。`);
+  }
+  // 收集自身 + 全部子孙
+  const removed: string[] = [];
+  const collect = (boneName: string): void => {
+    removed.push(boneName);
+    (json.bones ?? [])
+      .filter((b: any) => b.parent === boneName)
+      .forEach((b: any) => collect(b.name));
+  };
+  collect(name);
+  const removedSet = new Set(removed);
+
+  // 骨骼索引重排映射：oldIndex -> newIndex（被删的为 null）
+  const oldBones = json.bones ?? [];
+  const oldToNew = new Map<number, number | null>();
+  let newIdx = 0;
+  oldBones.forEach((b: any, i: number) => {
+    oldToNew.set(i, removedSet.has(b.name) ? null : newIdx++);
+  });
+
+  // 重排所有皮肤的加权网格附件顶点
+  if (removedSet.size > 0) {
+    for (const skin of skinsList(json)) {
+      for (const slotAtts of Object.values<any>(skin.attachments ?? {})) {
+        for (const att of Object.values<any>(slotAtts ?? {})) {
+          if (att && att.type === "mesh" && Array.isArray(att.vertices) && isWeightedMesh(att, oldBones.length)) {
+            reindexAttachmentWeights(att, oldToNew);
+          }
+        }
+      }
+    }
+  }
+
+  json.bones = oldBones.filter((b: any) => !removedSet.has(b.name));
+
+  // 移除绑在这些骨骼上的插槽
+  json.slots = (json.slots ?? []).filter((s: any) => !removedSet.has(s.bone));
+
+  // 清理动画中这些骨骼的时间轴
+  if (json.animations) {
+    for (const anim of Object.values<any>(json.animations)) {
+      if (anim.bones) {
+        for (const r of removed) {
+          delete anim.bones[r];
+        }
+      }
+    }
+  }
+  return { removed };
+}
+
+// ============================================================
+// Phase 4：Setup 属性（setBone / setSlotSetup）
+// ============================================================
+
+/** 设置骨骼 Setup 姿态属性（非动画关键帧） */
+export function setBone(
+  json: any,
+  name: string,
+  props: {
+    x?: number; y?: number; rotation?: number;
+    scaleX?: number; scaleY?: number; shearX?: number; shearY?: number;
+    length?: number; transformMode?: string; color?: string;
+  }
+): void {
+  const bone = findBone(json, name);
+  if (!bone) {
+    throw new SpineError(ErrorCode.BONE_NOT_FOUND, `骨骼 "${name}" 不存在。`);
+  }
+  Object.assign(bone, props);
+}
+
+/** 设置插槽 Setup 属性（颜色/混合模式/默认附件） */
+export function setSlotSetup(
+  json: any,
+  name: string,
+  props: { color?: string; blend?: string; attachment?: string }
+): void {
+  const slot = findSlot(json, name);
+  if (!slot) {
+    throw new SpineError(ErrorCode.SLOT_NOT_FOUND, `插槽 "${name}" 不存在。`);
+  }
+  Object.assign(slot, props);
+}
+
+/** 整体缩放项目（骨骼位置/长度、附件变换/尺寸、网格顶点、位移时间轴、骨架尺寸） */
+export function scaleProjectJson(json: any, scale: number): void {
+  if (scale <= 0) {
+    throw new SpineError(ErrorCode.INVALID_ARGUMENT, "缩放比例必须 > 0。");
+  }
+  // 骨架尺寸
+  if (json.skeleton) {
+    if (typeof json.skeleton.width === "number") json.skeleton.width *= scale;
+    if (typeof json.skeleton.height === "number") json.skeleton.height *= scale;
+    if (typeof json.skeleton.x === "number") json.skeleton.x *= scale;
+    if (typeof json.skeleton.y === "number") json.skeleton.y *= scale;
+  }
+  // 骨骼 setup
+  for (const b of json.bones ?? []) {
+    if (typeof b.x === "number") b.x *= scale;
+    if (typeof b.y === "number") b.y *= scale;
+    if (typeof b.length === "number") b.length *= scale;
+  }
+  // 附件（region x/y/width/height；mesh 顶点坐标）
+  for (const skin of skinsList(json)) {
+    for (const slotAtts of Object.values<any>(skin.attachments ?? {})) {
+      for (const att of Object.values<any>(slotAtts ?? {})) {
+        if (!att || typeof att !== "object") continue;
+        for (const k of ["x", "y", "width", "height"]) {
+          if (typeof att[k] === "number") att[k] *= scale;
+        }
+        if (Array.isArray(att.vertices)) {
+          // 网格顶点：加权网格每组 [count, (bi,x,y,w)...]，坐标在每组的 x,y 位置
+          if (isWeightedMesh(att, (json.bones ?? []).length)) {
+            let i = 0;
+            while (i < att.vertices.length) {
+              const count = att.vertices[i];
+              if (!Number.isInteger(count) || count < 1 || i + 1 + count * 4 > att.vertices.length) break;
+              i++;
+              for (let k = 0; k < count; k++) {
+                att.vertices[i + 1] *= scale; // x
+                att.vertices[i + 2] *= scale; // y
+                i += 4;
+              }
+            }
+          } else {
+            // 非加权：每对 [x,y]
+            for (let i = 0; i + 1 < att.vertices.length; i += 2) {
+              att.vertices[i] *= scale;
+              att.vertices[i + 1] *= scale;
+            }
+          }
+        }
+      }
+    }
+  }
+  // 动画位移时间轴 x/y
+  if (json.animations) {
+    for (const anim of Object.values<any>(json.animations)) {
+      for (const boneTl of Object.values<any>(anim.bones ?? {})) {
+        for (const frame of boneTl.translate ?? []) {
+          if (typeof frame.x === "number") frame.x *= scale;
+          if (typeof frame.y === "number") frame.y *= scale;
+        }
+      }
+    }
+  }
 }

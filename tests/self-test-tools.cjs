@@ -117,13 +117,13 @@ async function withCopy(modifyFn) {
     }
   }
 
-  // 删除被权重网格引用的骨骼 → 应返回明确错误（文档化限制）
+  // 删除被权重网格引用的骨骼 → Phase 4 已支持重排，应成功
   v = await withCopy(async (copy) => {
     r = await call("spine_delete_bone", { projectPath: copy, boneName: "spear1" });
-    report("delete_bone(权重网格守卫)", !r.success && r.data?.suggestion?.includes("权重网格"), r.message);
-    return true; // 项目未被修改，回读应成功
+    report("delete_bone(权重网格项目·重排)", r.success, r.message);
+    return r.success;
   });
-  report("守卫后项目可回读", v.valid);
+  report("权重网格删除后项目可回读", v.valid);
 
   v = await withCopy(async (copy) => {
     r = await call("spine_add_slot", { projectPath: copy, slotName: "slot-new", boneName: "root" });

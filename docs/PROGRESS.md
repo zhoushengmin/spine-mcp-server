@@ -11,7 +11,7 @@
 | Phase 1 | 基础设施 | ✅ 完成 | 项目骨架 / CLI 封装 / 版本检测 / 配置中心 |
 | Phase 2 | Spine 3.8.75 核心封装 | ✅ 完成 | project-reader / export / import / json-handler |
 | Phase 3 | MCP 工具开发 - 基础 | ✅ 完成 | server / registry / 21 个基础工具 |
-| Phase 4 | 高级骨骼模块 | ⬜ 未开始 | 约束 / 网格 / 曲线 / 事件 |
+| Phase 4 | 高级骨骼模块 | ✅ 完成 | 约束 / 网格 / 曲线 / 事件 |
 | Phase 5 | 图片拆分 + 骨骼构建 | ⬜ 未开始 | split_atlas / build_skeleton |
 | Phase 6 | Cocos 集成 + 面板 UI | ⬜ 未开始 | 扩展面板 / Vue3 |
 | Phase 7 | Web GUI（可选） | ⬜ 未开始 | 可视化面板 |
@@ -278,3 +278,48 @@ tests/self-test-mcp.cjs          — MCP 协议级自测（10 断言）
 > ⚠️ **需要用户验证的部分**：Trae/Cursor/Claude Desktop 实际连接配置、工具在 AI 对话中的真实调用体验。这部分我无法自测。
 
 **下一步**：Phase 4（高级骨骼模块：约束 IK/变换/路径、网格 edit_mesh、曲线/事件/绘制顺序、list-events/constraints/attachments/animation-detail 查询、图片渲染 render_preview）。
+
+---
+
+## Phase 4：高级骨骼模块（已完成）
+
+### 目标
+补齐 Spine 高级能力：约束系统（IK/变换/路径）、网格编辑（setup + FFD deform）、附件完整管理、曲线/事件/绘制顺序、项目级操作。工具总数 21 → **50 个**。
+
+### 任务清单
+
+| # | 任务 | 状态 | 验证结果 |
+|---|------|:----:|---------|
+| 4.1 | 高级信息查询（list-events/constraints/attachments/animation-detail） | ✅ | 真实项目读取成功 |
+| 4.2 | set-bone / set-slot（Setup 属性） | ✅ | 改 root 位置 / blend 成功 |
+| 4.3 | 附件（add/delete/set-transform） | ✅ | region 附件增删改 |
+| 4.4 | edit-mesh（setup + deform FFD） | ✅ | 网格尺寸 + 变形关键帧 |
+| 4.5 | IK 约束三件套 | ✅ | add/set(setup+animation)/delete |
+| 4.6 | 变换约束三件套 | ✅ | 含 mix/offset 属性 |
+| 4.7 | 路径约束三件套 | ✅ | stretchyman 实测 |
+| 4.8 | control-slot / control-constraint | ✅ | 插槽/约束时间轴关键帧 |
+| 4.9 | 事件 / 绘制顺序 / 曲线 / 动画时长 | ✅ | 全部实测 |
+| 4.10 | create-project / scale-project / import-image | ✅ | 实测 |
+| 4.11 | export-video | ⚠️ 占位 | 依赖 JS 渲染方案 |
+| 4.12 | **delete_bone 权重网格重排（解除 Phase 3 守卫）** | ✅ | goblins 实测删除成功 |
+
+### 当前进度明细（2026-08-22 完成 Phase 4）
+
+**新增文件**：29 个工具文件 + json-handler 高级函数（约束/附件/网格/事件/绘制/曲线/时长缩放/权重网格重排/scaleProjectJson）+ tests/self-test-p4.cjs
+
+**验证结果**
+| 测试 | 结果 |
+|-------|:--:|
+| Phase 4 自测 tests/self-test-p4.cjs | ✅ 45/45 |
+| Phase 3 回归 tests/self-test-tools.cjs | ✅ 37/37 |
+| MCP 协议 tests/self-test-mcp.cjs | ✅ 10/10（listTools = 50 个工具） |
+
+### ⚠️ 自测发现并修复的问题（重要）
+1. **约束 order 必须在所有类型（ik/transform/path）间唯一递增**：原按 type 内长度算，导致 `Missing constraint order`。已改为取全类型最大 order + 1。✅
+2. **draworder offsets 必须按插槽原始顺序排序**（offset 值为新顺序中的位置）：实测多 offset 直接写会 `Error reading animation`。已实现排序。✅
+3. **region 附件需要 width/height**：缺省导致 `Named value not found: width`。工具文档已注明。✅
+4. **权重网格重排（Phase 4 完成）**：实现加权网格 vertices `[count,(bi,x,y,w)×count]` 的骨骼索引重排，**解除 Phase 3 的 delete_bone 守卫**——现在含权重网格的项目也能删除骨骼了（goblins spear1 实测成功）。✅
+5. import_image：仅对绝对路径做存在性校验（图集 region 名为相对名）。✅
+6. **render_preview / export_video 仍为占位**：Spine 3.8.75 CLI 的图片/视频导出 schema 不可直接使用，完整方案需 JS Spine 运行时渲染（延后至后续阶段，标注在工具描述中）。⚠️
+
+**下一步**：Phase 5（图片拆分 split_atlas + 自动绑骨 build_skeleton + 图集重打包 repack_atlas，含 JS 渲染方案 render_preview 的完整实现）。

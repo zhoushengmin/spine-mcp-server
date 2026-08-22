@@ -63,6 +63,7 @@ function getSetupBone(json: any, name: string): any {
 
 /**
  * 在时间轴数组中 upsert 一帧：存在同 time 帧则合并，否则按默认值新建并插入。
+ * ⚠️ Spine 导出对 time=0 的关键帧会省略 time 字段（视为 0），查找时需兼容。
  * @returns 影响的关键帧数量（新建或更新均为 1）
  */
 function upsertTimelineFrame(
@@ -71,14 +72,14 @@ function upsertTimelineFrame(
   defaults: Record<string, any>,
   changes: Record<string, any>
 ): number {
-  const existing = timeline.find((f) => Math.abs(f.time - time) < 1e-6);
+  const existing = timeline.find((f) => Math.abs((f.time ?? 0) - time) < 1e-6);
   if (existing) {
     Object.assign(existing, changes);
     return 1;
   }
   const frame = { time, ...defaults, ...changes };
   timeline.push(frame);
-  timeline.sort((a, b) => a.time - b.time);
+  timeline.sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
   return 1;
 }
 

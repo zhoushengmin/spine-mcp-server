@@ -162,11 +162,12 @@ src/index.ts                     — 新增 reader/export/import/clean/roundtrip
 | clean（-m） | ✅ 0 未使用关键帧 |
 | json-handler 全操作 | ✅ renameSlot/addBone/deleteBone/setAttachment/动画增删复制改名/translate 关键帧 |
 
-### ⚠️ 两个关键实测发现（影响规格书，务必记录）
+### ⚠️ 关键实测发现（影响规格书，务必记录）
 
 1. **Spine 3.8.75 导出 JSON 的 `skins` 是数组格式** `[{ "name": "...", "attachments": {...} }]`，不是常见的 keyed 对象。代码已兼容两种格式，但规格书第 6/7 节未注明。✅ 已处理
 2. **Round-Trip 导入不能直接 `-o` 已存在项目**（会静默丢失修改，实测）。正确做法：导入到**临时新文件**再**原子替换**原项目。代码已实现 `importJsonInPlace`。✅ 已处理
 3. **图片/视频导出**：类名是 `images`（不是 `texture`），且完整 schema 在 CLI 上不直接可用（官方示例也只导 json/binary/atlas）。render_preview 的图片导出将在 **Phase 4** 专门解决。⚠️ 待 Phase 4
+4. **Spine 3.8 网格变形时间轴键名是 `deform`**（不是 `ffd`）：结构为 `animations.<名>.deform.<皮肤名>.<插槽名>.<附件名>`。**自测发现的 bug**：`renameSlot` 最初漏同步 deform 中的插槽键，导致改名后导入被 Spine 拒绝（"Error reading animation: attack"）。已修复（`renameSlot` 同时更新 `deform`/`ffd`），并端到端验证：slots/skins/deform 全部同步、无残留、导入成功。⚠️ 影响 Phase 4 edit_mesh 的设计（需读写 deform）。✅ 已修复
 
 ### 用户测试步骤（Phase 2）
 

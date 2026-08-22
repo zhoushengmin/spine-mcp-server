@@ -629,7 +629,8 @@ export interface TimelineFrame {
 
 #### 7.3.5 spine_edit_mesh 🆕
 **功能**：编辑网格附件：顶点坐标/UV/三角形/顶点权重；也可写动画 FFD 变形关键帧
-**参数**：`projectPath`；`slotName`；`attachmentName`；`mode` (setup|ffd)；`vertices`/`uvs`/`triangles`/`weights` (setup 用)；`animationName`/`frameIndex`/`deform` (ffd 用)
+**参数**：`projectPath`；`slotName`；`attachmentName`；`mode` (setup|deform)；`vertices`/`uvs`/`triangles`/`weights` (setup 用)；`animationName`/`frameIndex`/`deform` (deform 用)
+**⚠️ 实测**：Spine 3.8 的 FFD 时间轴键名为 **`deform`**（结构 `animations.<名>.deform.<皮肤名>.<插槽名>.<附件名>`），非 4.x 的 `ffd`。json-handler 已按此读写。
 **返回**：编辑确认 + 顶点数
 
 #### 7.3.6 spine_set_skin

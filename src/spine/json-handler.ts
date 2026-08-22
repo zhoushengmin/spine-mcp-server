@@ -210,6 +210,19 @@ export function renameSlot(json: any, oldName: string, newName: string): void {
         anim.slots[newName] = anim.slots[oldName];
         delete anim.slots[oldName];
       }
+      // 4. 网格变形时间轴 deform（Spine 3.8 键名，实测）：deform.<皮肤名>.<插槽名>
+      //    兼容旧键名 ffd
+      for (const deformKey of ["deform", "ffd"]) {
+        const deform = anim[deformKey];
+        if (deform && typeof deform === "object") {
+          for (const [skinName, slotsMap] of Object.entries<any>(deform)) {
+            if (oldName in slotsMap) {
+              slotsMap[newName] = slotsMap[oldName];
+              delete slotsMap[oldName];
+            }
+          }
+        }
+      }
     }
   }
 }

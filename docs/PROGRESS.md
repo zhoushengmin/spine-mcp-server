@@ -15,7 +15,7 @@
 | Phase 5 | 图片拆分 + 骨骼构建 | ✅ 完成 | split_atlas / build_skeleton / repack_atlas / JS 渲染 |
 | Phase 6 | Cocos 集成 + 面板 UI | ✅ 完成 | cocos-extension 面板 / 安装向导 / .ccx |
 | Phase 7 | Web GUI（可选） | ✅ 完成 | 可视化面板（5 页） |
-| Phase 8 | 测试与文档 | ⬜ 未开始 | 单测 / 集成 / 打包 |
+| Phase 8 | 测试与文档 | ✅ 完成 | 单元测试 / README / 用户手册 / 演示脚本 / .ccx |
 
 图例：✅ 完成 · 🚧 进行中 · ⬜ 未开始 · ❌ 阻塞
 
@@ -443,3 +443,40 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 浏览器打开 http://localhost:3000，5 个页签：项目 / 拆图 / 骨骼 / 预览 / 导出。
 
 **下一步**：Phase 8 测试与文档（单测、README、用户手册、演示视频、.ccx 上架）。
+
+---
+
+## Phase 8：测试与文档（已完成）
+
+### 目标
+补齐测试体系与用户文档：单元测试、统一集成测试、中英 README、用户手册、演示脚本、.ccx 打包验证。
+
+### 任务清单
+
+| # | 任务 | 状态 | 验证结果 |
+|---|------|:----:|---------|
+| 8.1 | 单元测试（node:test，零依赖） | ✅ | 20/20（json-handler/atlas/权重网格） |
+| 8.2 | 统一集成测试 `npm run test:all` | ✅ | 137 项断言全通过 |
+| 8.3 | README.md（中英双语） | ✅ | 项目根目录 |
+| 8.4 | 用户手册 USER_MANUAL.md（21 章）+ 打印 HTML | ✅ | 可浏览器打印为 PDF |
+| 8.5 | 演示脚本 DEMO_SCRIPT.md（5 分钟 7 场景） | ✅ | 含旁白/操作/命令 |
+| 8.6 | .ccx 打包验证 | ✅ | dist-ccx/spine-mcp-panel.ccx |
+
+### 当前进度明细（2026-08-22 完成 Phase 8）
+
+**新增文件**：tests/unit-tests.mjs（20 个单元测试）、README.md、docs/USER_MANUAL.md、docs/USER_MANUAL.html、docs/DEMO_SCRIPT.md、scripts/gen-manual-html.js
+
+**最终测试矩阵（npm run test:all）**
+| 套件 | 结果 |
+|------|:--:|
+| 单元测试（node:test） | ✅ 20/20 |
+| Phase 3 工具集成 | ✅ 37/37 |
+| Phase 4 工具集成 | ✅ 45/45 |
+| Phase 5 工具集成 | ✅ 13/13 |
+| MCP 协议 | ✅ 10/10（55 工具） |
+| Cocos 扩展桥接 | ✅ 12/12 |
+| **合计** | ✅ **137 项断言** |
+
+**自测发现并修复**：findRegion 未匹配 region 子目录前缀（goblin/head vs head）→ 已修复并补单元测试；权重网格重排测试数据修正。
+
+**下一步**：项目全部 8 个 Phase 完成。剩余可选：录制演示视频、Cocos Store 上架、持续优化 render_preview 网格渲染。

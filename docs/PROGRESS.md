@@ -585,4 +585,10 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **"推荐使用 cocos Dashboard" 弹窗**：为 Cocos 编辑器自身提示（项目未由 Dashboard 管理时弹出），与扩展无关，可忽略。
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 9.7 KB。
 
+### 六次修复（环境变量覆盖用户配置，2026-08-23）
+用户反馈：浏览选择有"已选择"日志，但输入框值不更新。
+- **根因**：系统环境变量 `SPINE_EXE`（配 MCP 时设置）在 `main.js` 的 `loadConfig()` 中**无条件覆盖**用户保存的 spineExe → 面板保存后 `get-config` 仍返回环境变量值，`_renderConfig` 把输入框覆盖回去。
+- **修复**：`loadConfig()` 改为「用户已显式保存非空 spineExe 时优先，环境变量仅兜底」。
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 10.1 KB。
+
 

@@ -24,14 +24,18 @@ let mcpStatus = 'stopped'; // stopped | starting | running | error
 // ---------------- 配置 ----------------
 function loadConfig() {
   const cfg = { ...DEFAULT_CONFIG };
+  let hasSavedSpine = false;
   try {
     const saved = Editor.Profile.getConfig('spine-mcp', 'config') || {};
     Object.assign(cfg, saved);
+    // 用户是否显式保存过 spineExe（非空）
+    hasSavedSpine = typeof saved.spineExe === 'string' && saved.spineExe.length > 0;
   } catch (e) {
     // 容错
   }
-  // 环境变量优先
-  if (process.env.SPINE_EXE) cfg.spineExe = process.env.SPINE_EXE;
+  // 环境变量仅作兜底：用户已显式保存 spineExe 时以用户配置优先
+  // （避免系统 SPINE_EXE 环境变量覆盖面板手动选择的路径）
+  if (!hasSavedSpine && process.env.SPINE_EXE) cfg.spineExe = process.env.SPINE_EXE;
   return cfg;
 }
 

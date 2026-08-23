@@ -577,4 +577,12 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **修复**：`panelDef` 增加 `$` 选择器（root + 全部交互按钮）；`ready()` 用 `this.$.root` 获取根元素，事件绑定改用 `this.$.btnXxx`（带 `#id` querySelector 兜底）。
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 9.3 KB。
 
+### 五次修复（清单字段 + MCP 子进程启动方式，2026-08-23）
+用户反馈：`package_version is not defined`、大量 `Load profile failed: local://...`、`libpng warning` 报错；点启动服务弹"推荐使用 cocos Dashboard"。
+- **`package_version is not defined`**：Cocos 3.x 扩展清单必填 `"package_version": 2`（Number），缺失 → 补上。
+- **`Load profile failed: local://...`**：`main.js` 用 `spawn(process.execPath, ...)` 启动 MCP，但 Cocos 扩展主进程运行在 Electron 里，`process.execPath` 指向 **Cocos Creator 可执行文件**（Electron）而非 node → 用 Electron 错误地启动脚本，输出大量 profile 加载失败警告且服务无法正确运行。修复：新增 `resolveNode()`（优先 `SPINE_MCP_NODE` 环境变量，否则 PATH 中的 `node`），`spawn` 改用 `node`。
+- **`libpng warning: tRNS`**：Spine CLI 导出时的无害警告 → stderr 转发时过滤已知无害警告（libpng/Load profile/Welcome data）。
+- **"推荐使用 cocos Dashboard" 弹窗**：为 Cocos 编辑器自身提示（项目未由 Dashboard 管理时弹出），与扩展无关，可忽略。
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 9.7 KB。
+
 

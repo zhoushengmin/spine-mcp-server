@@ -50,6 +50,20 @@ function resolveSpineExe(spineExe) {
   return null;
 }
 
+/**
+ * 解析 Node 可执行文件。
+ * ⚠️ 不能用 process.execPath：Cocos 扩展主进程运行在 Electron 里，
+ * process.execPath 指向 Cocos Creator 的可执行文件（Electron），
+ * 用它启动 MCP 脚本会输出大量 "Load profile failed" 且服务无法正确运行。
+ * 优先 SPINE_MCP_NODE 环境变量，否则用 PATH 中的 node。
+ */
+function resolveNode() {
+  if (process.env.SPINE_MCP_NODE && fs.existsSync(process.env.SPINE_MCP_NODE)) {
+    return process.env.SPINE_MCP_NODE;
+  }
+  return 'node';
+}
+
 // ---------------- 服务生命周期 ----------------
 function startServer() {
   if (mcpProcess) return { ok: true, status: 'running' };
@@ -63,7 +77,7 @@ function startServer() {
   mcpStatus = 'starting';
   try {
     const env = { ...process.env, SPINE_EXE: cfg.spineExe, SPINE_MCP_LOG_LEVEL: cfg.logLevel };
-    mcpProcess = spawn(process.execPath, [entry, 'mcp'], {
+    mcpProcess = spawn(resolveNode(), [entry, 'mcp'], {
       cwd: serverPath,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -73,7 +87,10 @@ function startServer() {
       mcpStatus = 'stopped';
     });
     mcpProcess.stderr.on('data', (d) => {
-      console.error('[spine-mcp]', d.toString().trim());
+      const text = d.toString();
+      // 过滤已知无害警告（Spine CLI / 渲染库），避免污染控制台
+      if (/libpng warning|Load profile failed|Welcome data download failed|WARNING: Welcome/i.test(text)) return;
+      console.error('[spine-mcp]', text.trim());
     });
     mcpStatus = 'running';
     return { ok: true, status: 'running', pid: mcpProcess.pid };

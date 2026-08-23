@@ -1,4 +1,5 @@
 {
+  "package_version": 2,
   "name": "spine-mcp-panel",
   "version": "1.0.0",
   "description": "Spine MCP Server 的 Cocos Creator 可视化面板：一键启动 MCP 服务、扫描 Spine 项目、调用 Spine 工具、生成 AI 客户端配置。",

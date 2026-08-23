@@ -479,4 +479,50 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 
 **自测发现并修复**：findRegion 未匹配 region 子目录前缀（goblin/head vs head）→ 已修复并补单元测试；权重网格重排测试数据修正。
 
-**下一步**：项目全部 8 个 Phase 完成。剩余可选：录制演示视频、Cocos Store 上架、持续优化 render_preview 网格渲染。
+---
+
+## 补充：占位功能补齐（2026-08-23 完成）
+
+### 目标
+消除 render_preview / export_video 两个占位项，让 55 个工具全部可用：
+- **render_preview**：从「mesh 附件按未变形 region 近似绘制」升级为**真实网格顶点变形渲染**（软件三角形光栅化）。
+- **export_video**：从占位工具升级为**完整视频导出**（JS 逐帧渲染 → GIF/MP4/WebM）。
+
+### 变更内容
+1. **src/spine/render-service.ts 重写**：
+   - 软件三角形光栅化器（重心坐标 + 双线性纹理采样 + 预乘 alpha src-over）
+   - mesh 附件真实顶点计算：支持**加权（蒙皮多骨骼权重混合）与非加权** mesh、**deform FFD**（offset + 逐顶点偏移）
+   - region 附件也走同一光栅化路径（2 三角形），保证绘制顺序正确
+   - 新增 `renderFrameToRgba`（返回 RGBA Buffer）、`renderAnimationFrames`（多帧序列）；`renderFrame` 保持兼容
+2. **src/utils/gif-encoder.ts（新增）**：纯 JS GIF89a 编码器（零依赖）
+   - 中位切分颜色量化（透明色保留）
+   - GIF 标准 LZW 压缩（可变码宽 9→12 位，字典满自动 clear）
+   - 提供 encodeGif / encodeLZW / decodeLZW（后者用于往返自测）
+3. **src/tools/export-video.tool.ts 重写**：
+   - 支持 projectPath（自动导出 JSON + 定位 atlas/png）或直接传产物
+   - 默认输出 GIF（纯 JS，任意环境可用）；检测到 ffmpeg（FFMPEG_PATH 或 PATH）可输出 MP4/WebM
+   - 无 ffmpeg 请求 mp4/webm 时返回明确提示
+4. **tests/self-test-render.cjs（新增，14 项）**：mesh 渲染非空白 / 多帧序列 / LZW 往返（含字典增长）/ GIF sharp 可解码 / export_video 成功与错误路径。
+
+### 验证结果（本机实测）
+| 测试 | 结果 |
+|------|:--:|
+| render_preview hero idle（7 个加权 mesh 附件） | ✅ 512x512 非空白，包围盒居中（中心 x≈306/y≈248，画布中心 256） |
+| renderAnimationFrames idle 8 帧 | ✅ 帧内容随动画变化 |
+| GIF LZW 往返（pattern/字典增长/random） | ✅ 全通过 |
+| GIF sharp + PIL 解码 | ✅ 2 帧动画可解码、尺寸/颜色正确 |
+| export_video GIF（hero idle） | ✅ 8 帧 GIF 可解码 |
+| **test:all 全量回归** | ✅ **151 项断言全通过**（20 单测 + 37 P3 + 45 P4 + 13 P5 + 14 render + 10 MCP + 12 ext） |
+
+### ⚠️ 自测发现并修复的问题
+1. **GIF LSD 色表大小字节错误**：packed 写 0x80（声明 2 色）但写了 768 字节全局色表 → libvips/PIL 解析错位报 "Invalid frame data"。改为 0x87（256 色）。✅
+2. **GIF LZW 编码增宽时机**：`nextCode == 2^codeSize` 时增宽会导致解码端错位（bad code 992）；改为 `nextCode > 2^codeSize`（与解码端 `dict.length == 2^codeSize` 对齐）。✅
+3. **GCE 透明索引写错位置**：透明索引应位于 gce[6]，delay 位于 gce[4..5]。✅
+4. **export_video GIF 分支漏写文件**：encodeGif 后未 fs.writeFileSync。✅
+
+### 说明
+- mesh 渲染限制：附件染色（color）、路径约束、剪切附件（clipping）暂不支持；region 附件旋转/缩放/变形均支持。
+- 视频导出：GIF 为纯 JS 编码，任意环境可用；MP4/WebM 依赖 ffmpeg（设置 FFMPEG_PATH 或加入 PATH）。
+
+**下一步**：录制演示视频、Cocos Store 上架资料、真实项目工作流验证。
+

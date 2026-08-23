@@ -12,7 +12,7 @@ import * as path from "path";
 
 export class RenderPreviewTool extends BaseTool {
   name = "spine_render_preview";
-  description = "用 JS 运行时渲染 Spine 动画指定帧为 PNG 预览（region 附件；mesh 近似绘制）。可传导出产物路径，或传 .spine 项目自动导出。";
+  description = "用 JS 运行时渲染 Spine 动画指定帧为 PNG 预览（软件三角形光栅化，region 与 mesh 附件，含加权蒙皮与 deform FFD 顶点变形）。可传产物路径，或传 .spine 项目自动导出。";
   inputSchema = z.object({
     skeletonJson: z.string().optional().describe("导出的骨架 JSON 路径"),
     atlasPath: z.string().optional().describe(".atlas 路径"),

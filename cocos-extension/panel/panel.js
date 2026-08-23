@@ -43,6 +43,7 @@ const template = `
     <div class="sm-field">
       <label>Server 路径</label>
       <input id="sm-server" class="sm-input" placeholder="D:/cocos/spine-mcp-server" />
+      <button id="sm-browse-server" class="sm-btn">浏览</button>
     </div>
     <div class="sm-field">
       <label>工作区</label>
@@ -254,18 +255,50 @@ const methods = {
       this._pushLogDom('保存失败：' + (r && r.error), 'error');
     }
   },
+  // 兼容解析 Dialog.select 返回值（{canceled,filePaths} / 数组 / 字符串）
+  _dialogPaths(res) {
+    if (!res) return [];
+    if (Array.isArray(res)) return res.filter((x) => typeof x === 'string');
+    if (Array.isArray(res.filePaths)) return res.filePaths;
+    if (Array.isArray(res.paths)) return res.paths;
+    if (typeof res.filePath === 'string') return [res.filePath];
+    if (typeof res === 'string') return [res];
+    return [];
+  },
   async browseSpine() {
-    const file = await Editor.Dialog.select({ type: 'file', filters: [{ name: 'Spine', extensions: ['exe', 'bat', 'com'] }] });
-    if (file && file.filePaths && file.filePaths.length) {
-      this.el.querySelector('#sm-spine').value = file.filePaths[0];
+    try {
+      const res = await Editor.Dialog.select({ title: '选择 Spine 可执行文件', type: 'file', filters: [{ name: 'Spine', extensions: ['exe', 'bat', 'com'] }] });
+      const paths = this._dialogPaths(res);
+      if (!paths.length) { this._pushLogDom('未选择文件', 'warn'); return; }
+      this.el.querySelector('#sm-spine').value = paths[0];
+      this._pushLogDom('已选择 Spine：' + paths[0], 'info');
       await this.saveConfig();
+    } catch (e) {
+      this._pushLogDom('选择失败：' + String(e), 'error');
+    }
+  },
+  async browseServer() {
+    try {
+      const res = await Editor.Dialog.select({ title: '选择 spine-mcp-server 目录', type: 'directory' });
+      const paths = this._dialogPaths(res);
+      if (!paths.length) { this._pushLogDom('未选择目录', 'warn'); return; }
+      this.el.querySelector('#sm-server').value = paths[0];
+      this._pushLogDom('已选择 Server：' + paths[0], 'info');
+      await this.saveConfig();
+    } catch (e) {
+      this._pushLogDom('选择失败：' + String(e), 'error');
     }
   },
   async browseWorkspace() {
-    const dir = await Editor.Dialog.select({ type: 'directory' });
-    if (dir && dir.filePaths && dir.filePaths.length) {
-      this.el.querySelector('#sm-workspace').value = dir.filePaths[0];
+    try {
+      const res = await Editor.Dialog.select({ title: '选择工作区（扫描 .spine 的目录）', type: 'directory' });
+      const paths = this._dialogPaths(res);
+      if (!paths.length) { this._pushLogDom('未选择目录', 'warn'); return; }
+      this.el.querySelector('#sm-workspace').value = paths[0];
+      this._pushLogDom('已选择工作区：' + paths[0], 'info');
       await this.saveConfig();
+    } catch (e) {
+      this._pushLogDom('选择失败：' + String(e), 'error');
     }
   },
   async refreshStatus() {
@@ -376,6 +409,7 @@ const panelDef = {
     btnSave: '#sm-save',
     btnScan: '#sm-scan',
     btnBrowseSpine: '#sm-browse-spine',
+    btnBrowseServer: '#sm-browse-server',
     btnBrowseWs: '#sm-browse-ws',
     btnGenConfig: '#sm-gen-config',
     btnCopyConfig: '#sm-copy-config',
@@ -412,6 +446,7 @@ const panelDef = {
     (vm.$.btnSave || $('#sm-save')).addEventListener('click', () => vm.saveConfig());
     (vm.$.btnScan || $('#sm-scan')).addEventListener('click', () => vm.scanProjects());
     (vm.$.btnBrowseSpine || $('#sm-browse-spine')).addEventListener('click', () => vm.browseSpine());
+    (vm.$.btnBrowseServer || $('#sm-browse-server')).addEventListener('click', () => vm.browseServer());
     (vm.$.btnBrowseWs || $('#sm-browse-ws')).addEventListener('click', () => vm.browseWorkspace());
     (vm.$.btnGenConfig || $('#sm-gen-config')).addEventListener('click', () => vm.generateConfig());
     (vm.$.btnCopyConfig || $('#sm-copy-config')).addEventListener('click', () => vm.copyConfig());

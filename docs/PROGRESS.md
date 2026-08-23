@@ -616,4 +616,10 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
   - 刷新项目：空工作区时提示"未配置工作区，请先填写目录并保存"
 - **验证**：MCP 回退路径实测还原成功（get_project_info → data.bones=31）；扩展自测 12/12；`.ccx` 重新打包 12.4 KB。
 
+### 十次修复（MCP 初始化同步 + 工具中文标签，2026-08-23）
+用户反馈：首次点查看信息报 `get-info 异常: Could not load the sharp module`（回退后第二次成功）；快速工具下拉框是英文工具名看不懂。
+- **首次调用失败**：MCP 服务刚启动时 `initialize` 尚未完成，立即发 `tools/call` 被服务器拒绝 → 新增 `mcpReady` Promise，`runToolViaMcp` 先 `await mcpReady` 再调用。
+- **工具中文标签**：新增 55 个工具的中文映射 `TOOL_LABELS`，`spine:list-tools` 返回 `{name, label}`，面板下拉框显示中文（如"读取项目信息"），执行仍用英文工具名。
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 13.4 KB。
+
 

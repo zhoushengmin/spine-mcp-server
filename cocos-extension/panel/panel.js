@@ -218,9 +218,9 @@ const methods = {
   },
   _renderTools() {
     const sel = this.el.querySelector('#sm-tool');
-    const names = this._s.toolNames || [];
-    sel.innerHTML = names.map((n) => `<option value="${n}">${n}</option>`).join('');
-    if (this._s.quickTool && names.includes(this._s.quickTool)) sel.value = this._s.quickTool;
+    const tools = this._s.tools || [];
+    sel.innerHTML = tools.map((t) => `<option value="${t.name}">${t.label || t.name}</option>`).join('');
+    if (this._s.quickTool && tools.some((t) => t.name === this._s.quickTool)) sel.value = this._s.quickTool;
   },
   _renderAiConfig() {
     this.el.querySelector('#sm-ai-config').value = this._s.aiConfigText || '';
@@ -441,10 +441,10 @@ const methods = {
     try {
       const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-tools');
       if (r && r.ok) {
-        this._s.toolNames = (r.tools || []).map((t) => t.name);
-        this._s.quickTool = this._s.toolNames[0] || '';
+        this._s.tools = r.tools || [];
+        this._s.quickTool = this._s.tools[0] ? this._s.tools[0].name : '';
         this._renderTools();
-        if (!this._s.toolNames.length) this._pushLogDom('未获取到工具列表（请检查 Server 路径与 npm run build）', 'warn');
+        if (!this._s.tools.length) this._pushLogDom('未获取到工具列表（请检查 Server 路径与 npm run build）', 'warn');
       } else {
         this._pushLogDom('加载工具失败：' + ((r && r.error) || '未知错误'), 'error');
       }
@@ -504,7 +504,7 @@ const panelDef = {
       aiConfigText: '',
       projects: [],
       selectedProject: '',
-      toolNames: [],
+      tools: [],
       quickTool: '',
     };
     if (!vm.el) {

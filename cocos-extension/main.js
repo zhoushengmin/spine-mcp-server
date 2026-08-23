@@ -73,6 +73,66 @@ function resolveNode() {
 let mcpBuf = '';
 let mcpReqSeq = 1;
 const mcpPending = new Map(); // id -> { resolve, reject, timer }
+let mcpReady = null;          // MCP initialize 完成标记（Promise）
+
+/** 55 个工具的中文标签（用于面板下拉框展示） */
+const TOOL_LABELS = {
+  spine_get_project_info: '读取项目信息',
+  spine_inspect_json: '深度分析骨架',
+  spine_list_animations: '列出动画',
+  spine_list_events: '列出事件',
+  spine_list_constraints: '列出约束',
+  spine_get_attachments: '读取附件',
+  spine_get_animation_detail: '动画时间轴详情',
+  spine_render_preview: '渲染帧预览',
+  spine_control_bone: '骨骼关键帧变换',
+  spine_add_bone: '新增骨骼',
+  spine_delete_bone: '删除骨骼',
+  spine_set_bone: '设置骨骼属性',
+  spine_add_slot: '新增插槽',
+  spine_delete_slot: '删除插槽',
+  spine_set_slot: '设置插槽',
+  spine_rename_slot: '重命名插槽',
+  spine_batch_rename: '批量重命名',
+  spine_set_attachment: '设置附件',
+  spine_add_attachment: '新增附件',
+  spine_delete_attachment: '删除附件',
+  spine_set_attachment_transform: '附件变换',
+  spine_edit_mesh: '编辑网格',
+  spine_set_skin: '皮肤管理',
+  spine_add_ik: '新增IK约束',
+  spine_set_ik: '设置IK约束',
+  spine_delete_ik: '删除IK约束',
+  spine_add_transform: '新增变换约束',
+  spine_set_transform: '设置变换约束',
+  spine_delete_transform: '删除变换约束',
+  spine_add_path: '新增路径约束',
+  spine_set_path: '设置路径约束',
+  spine_delete_path: '删除路径约束',
+  spine_add_simple_animation: '生成模板动画',
+  spine_duplicate_animation: '复制动画',
+  spine_delete_animation: '删除动画',
+  spine_rename_animation: '重命名动画',
+  spine_set_animation_settings: '动画时长设置',
+  spine_control_slot: '插槽关键帧',
+  spine_control_constraint: '约束关键帧',
+  spine_add_event_keyframe: '添加事件帧',
+  spine_set_draw_order: '绘制顺序',
+  spine_set_curve: '设置曲线',
+  spine_split_atlas: '拆分图集',
+  spine_repack_atlas: '图集重打包',
+  spine_import_image: '导入图片',
+  spine_export_video: '导出视频',
+  spine_build_skeleton: '自动绑骨',
+  spine_export_animation: '导出动画',
+  spine_import_animation: '导入动画',
+  spine_clean_animation: '清理动画',
+  spine_create_project: '创建项目',
+  spine_scale_project: '缩放项目',
+  spine_list_cocos_assets: '扫描Cocos资源',
+  spine_validate_references: '引用完整性校验',
+  spine_rollback: '回滚备份',
+};
 
 function handleMcpData(chunk) {
   mcpBuf += chunk.toString();
@@ -112,11 +172,11 @@ function mcpRequest(method, params) {
 function initMcpClient() {
   if (!mcpProcess) return;
   mcpProcess.stdout.on('data', handleMcpData);
-  mcpRequest('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'spine-mcp-panel', version: '1.0.0' } })
+  mcpReady = mcpRequest('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'spine-mcp-panel', version: '1.0.0' } })
     .then(() => {
       mcpProcess.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }) + '\n');
     })
-    .catch((e) => console.error('[spine-mcp] MCP initialize 失败:', e.message));
+    .catch((e) => { console.error('[spine-mcp] MCP initialize 失败:', e.message); mcpReady = null; });
 }
 
 /** 通过 MCP 子进程调用工具（还原工具 execute 结果对象） */
@@ -126,6 +186,8 @@ async function runToolViaMcp(toolName, args) {
     if (!r.ok) return { ok: false, error: r.error || 'MCP 服务启动失败' };
   }
   try {
+    // 等待 MCP 初始化完成，避免首次调用被服务器拒绝
+    if (mcpReady) await mcpReady;
     const resp = await mcpRequest('tools/call', { name: toolName, arguments: args || {} });
     const text = resp && resp.content && resp.content[0] && resp.content[0].text;
     if (text == null) return { ok: true, result: { success: false, message: '工具无返回结果' } };
@@ -267,7 +329,7 @@ const methods = {
       // 用 constants.js（不依赖 sharp）列出工具名，避免本进程加载 sharp 失败
       const consts = require(path.join(resolveServerPath((await loadConfig()).serverPath), 'dist', 'constants.js'));
       const names = Object.values(consts.TOOL_NAMES || {});
-      return { ok: true, tools: names.map((n) => ({ name: n, description: '' })) };
+      return { ok: true, tools: names.map((n) => ({ name: n, label: TOOL_LABELS[n] || n, description: TOOL_LABELS[n] || '' })) };
     } catch (e) {
       return { ok: false, error: String(e), tools: [] };
     }

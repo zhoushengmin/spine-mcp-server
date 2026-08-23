@@ -622,6 +622,13 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **工具中文标签**：新增 55 个工具的中文映射 `TOOL_LABELS`，`spine:list-tools` 返回 `{name, label}`，面板下拉框显示中文（如"读取项目信息"），执行仍用英文工具名。
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 13.4 KB。
 
+### 十二次修复（pid undefined + 控制台红色日志 + web 端口占用，2026-08-23）
+用户反馈：启动服务提示 pid undefined；Cocos 控制台满屏红色 error；`npm run web` 报 `Unhandled 'error' event`。
+- **pid undefined**：`startServer()` 的 `if (mcpProcess) return { ok: true, status: 'running' }` 分支漏返回 pid（服务已在运行时再点启动）→ 补 `pid: mcpProcess.pid`。
+- **控制台红色 error**：MCP 子进程日志（logger.ts 非 TTY 时全部走 stderr，保证 stdout 是协议通道）被 main.js 用 `console.error` 转发 → 全部显示红色。改为按级别：含 `ERROR` 才 `console.error`，其余 INFO/WARN/DEBUG 用 `console.log`（普通色）。
+- **web 启动报错**：`server.js` 的 `server.listen` 无错误处理 → 端口 3000 被占用时 `Unhandled 'error'` 崩溃。新增 `server.on('error')`：EADDRINUSE 提示"端口已被占用，请换端口：node webgui/server.js <端口>"。
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 13.6 KB；web 端口冲突提示实测生效，3100 端口启动 + /api/status 正常（55 工具）。
+
 ### 十一次调整（面板精简——注释快速工具，2026-08-23）
 用户提出：快速工具是给 AI 调用的，没必要显示在操作面板上。经确认后**注释**（保留代码便于恢复）：
 - 注释 `panel/panel.js` 中快速工具区块（template）、`$` 选择器 `btnRun`、ready 绑定、`_renderTools/loadTools/runQuickTool` 方法、refreshAll 中的调用

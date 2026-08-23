@@ -207,7 +207,7 @@ async function runToolViaMcp(toolName, args) {
 
 // ---------------- 服务生命周期 ----------------
 async function startServer() {
-  if (mcpProcess) return { ok: true, status: 'running' };
+  if (mcpProcess) return { ok: true, status: 'running', pid: mcpProcess.pid };
   const cfg = await loadConfig();
   const serverPath = resolveServerPath(cfg.serverPath);
   const entry = path.join(serverPath, 'dist', 'index.js');
@@ -231,7 +231,15 @@ async function startServer() {
       const text = d.toString();
       // 过滤已知无害警告（Spine CLI / 渲染库），避免污染控制台
       if (/libpng warning|Load profile failed|Welcome data download failed|WARNING: Welcome/i.test(text)) return;
-      console.error('[spine-mcp]', text.trim());
+      const clean = text.trim();
+      if (!clean) return;
+      // MCP 子进程日志走 stderr（保证 stdout 是协议通道），按级别显示：
+      // ERROR 用 console.error（红色），INFO/WARN/DEBUG 用 console.log（普通色）
+      if (/^\S*\[\d{2}:\d{2}:\d{2}\]\s*ERROR\s/i.test(clean) || /\bERROR\b/.test(clean)) {
+        console.error('[spine-mcp]', clean);
+      } else {
+        console.log('[spine-mcp]', clean);
+      }
     });
     initMcpClient();
     mcpStatus = 'running';

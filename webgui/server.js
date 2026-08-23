@@ -316,3 +316,14 @@ server.listen(PORT, () => {
   console.log(`Spine MCP Web GUI 已启动: http://localhost:${PORT}`);
   console.log(`静态目录: ${PUBLIC_DIR}`);
 });
+
+// 端口占用等启动错误友好提示（避免 Unhandled 'error' 崩溃）
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`端口 ${PORT} 已被占用。请换端口启动：node webgui/server.js <端口>`);
+    console.error(`例如：node webgui/server.js 3100`);
+    process.exit(1);
+  }
+  console.error(`Web GUI 服务器启动失败：${err && err.message ? err.message : String(err)}`);
+  process.exit(1);
+});

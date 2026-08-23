@@ -287,29 +287,32 @@ const methods = {
   },
 };
 
-exports.template = template;
-exports.style = style;
-exports.methods = methods;
-
-exports.ready = async function () {
-  const vm = this;
-  vm.status = 'stopped';
-  vm.config = {};
-  vm.spineExeExists = true;
-  vm.showGuide = true;
-  vm.guideStep1 = false;
-  vm.guideStep2 = false;
-  vm.guideStep3 = false;
-  vm.aiConfigText = '';
-  vm.copied = false;
-  vm.projects = [];
-  vm.selectedProject = '';
-  vm.toolNames = [];
-  vm.quickTool = '';
-  vm.logs = [];
-  await vm.refreshAll();
+const panelDef = {
+  template,
+  style,
+  methods,
+  async ready() {
+    const vm = this;
+    vm.status = 'stopped';
+    vm.config = {};
+    vm.spineExeExists = true;
+    vm.showGuide = true;
+    vm.guideStep1 = false;
+    vm.guideStep2 = false;
+    vm.guideStep3 = false;
+    vm.aiConfigText = '';
+    vm.copied = false;
+    vm.projects = [];
+    vm.selectedProject = '';
+    vm.toolNames = [];
+    vm.quickTool = '';
+    vm.logs = [];
+    await vm.refreshAll();
+  },
+  close() {
+    // 面板关闭时无需停服务（服务可被 AI 客户端复用）
+  },
 };
 
-exports.close = function () {
-  // 面板关闭时无需停服务（服务可被 AI 客户端复用）
-};
+// Cocos Creator 3.8 面板：Editor.Panel.define 定义；非 Cocos 环境（自测）直接导出普通对象
+module.exports = typeof Editor !== 'undefined' && Editor.Panel && Editor.Panel.define ? Editor.Panel.define(panelDef) : panelDef;

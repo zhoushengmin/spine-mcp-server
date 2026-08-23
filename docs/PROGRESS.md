@@ -554,4 +554,13 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 3. 菜单 **扩展 → Spine MCP Server** 应出现，点击打开面板
 4. 面板应能读取配置/扫描项目/启动服务（消息通道已修正）
 
+### 二次修复（同批验证发现）
+用户反馈：菜单出现了但显示 **undefined**，点击报错 `Panel(spine-mcp-panel) is not defined`。
+- **根因**：面板注册字段放错位置——Cocos Creator 3.8 的 `panels`（复数）必须定义在 **package.json 顶层**，原结构用了 `contributions.panel`（单数，非 3.x 字段），导致面板未注册；menu 项缺 `label` 字段导致显示 undefined；`extensionType: "app"` 为非 3.x 标准字段。
+- **修复**：
+  - `package.json`：面板移入顶层 `panels.default`；menu 增加 `label`、path 用 `i18n:menu.extension/Spine MCP Server`；open-panel 消息改不带前缀；移除 `extensionType`
+  - `panel/panel.js`：改用 Cocos 3.8 推荐的 `Editor.Panel.define({...})`（带非 Cocos 环境兼容导出，供自测）
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 7.7 KB
+- **重新验证**：移除扩展 → 重新导入 `cocos-extension` → 启用 → **扩展 → Spine MCP Server**（正常显示文本）→ 点击打开面板
+
 

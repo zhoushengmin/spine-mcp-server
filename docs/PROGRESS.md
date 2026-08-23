@@ -526,3 +526,32 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 
 **下一步**：录制演示视频、Cocos Store 上架资料、真实项目工作流验证。
 
+---
+
+## 补充：Cocos 扩展菜单修复（2026-08-23）
+
+### 问题
+用户验证 Phase 6 扩展时发现：导入 `cocos-extension` 后有 `spine-mcp-panel`，但 **扩展 → Spine MCP Server 菜单不出现**。
+
+### 根因（2 处）
+1. **package.json 缺 `contributions.menu`**：Cocos Creator 3.x 的菜单项必须通过 `contributions.menu` 注册（`{ path: "扩展/Spine MCP Server", message: "<扩展名>:open-panel" }`），原清单只有 `panel`/`messages`，故面板存在但无菜单入口。
+2. **panel.js 消息扩展名错误**：所有 `Editor.Message.request('spine-mcp', ...)` 的扩展名应为实际包名 `spine-mcp-panel`，写成了 `spine-mcp`（该名称是 AI 客户端里 MCP server 的名字，不是 Cocos 扩展名）→ 即使打开面板，消息调用也全部失败。
+
+### 修复
+| 文件 | 变更 |
+|------|------|
+| `cocos-extension/package.json` | 新增 `contributions.menu`（扩展/Spine MCP Server）+ `messages` 增加 `spine-mcp-panel:open-panel` |
+| `cocos-extension/main.js` | `methods` 增加 `open-panel`（`Editor.Panel.open('spine-mcp-panel')`）；子进程 stderr 改直接输出控制台 |
+| `cocos-extension/panel/panel.js` | 10 处 `'spine-mcp'` → `'spine-mcp-panel'` |
+
+### 验证
+- `tests/self-test-extension.cjs` ✅ 12/12
+- `npm run package:ccx` ✅ 重新打包 7.6 KB
+
+### 用户重新验证步骤
+1. 关闭并重开 Cocos Creator（或 扩展管理器 → 刷新）
+2. 若仍是旧版本：先**移除**该扩展，再重新导入 `cocos-extension` 目录并勾选启用
+3. 菜单 **扩展 → Spine MCP Server** 应出现，点击打开面板
+4. 面板应能读取配置/扫描项目/启动服务（消息通道已修正）
+
+

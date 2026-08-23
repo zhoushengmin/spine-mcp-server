@@ -73,7 +73,7 @@ function startServer() {
       mcpStatus = 'stopped';
     });
     mcpProcess.stderr.on('data', (d) => {
-      try { Editor.Message.send('spine-mcp', 'spine:log', d.toString().trim()); } catch (e) {}
+      console.error('[spine-mcp]', d.toString().trim());
     });
     mcpStatus = 'running';
     return { ok: true, status: 'running', pid: mcpProcess.pid };
@@ -140,6 +140,9 @@ function unload() {
 
 // ---------------- 消息方法 ----------------
 const methods = {
+  'open-panel': () => {
+    Editor.Panel.open('spine-mcp-panel');
+  },
   'spine:start': async () => startServer(),
   'spine:stop': async () => stopServer(),
   'spine:status': async () => ({ status: mcpStatus, pid: mcpProcess ? mcpProcess.pid : null }),

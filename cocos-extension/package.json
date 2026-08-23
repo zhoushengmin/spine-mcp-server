@@ -17,7 +17,17 @@
       },
       "doc": "http://esotericsoftware.com"
     },
+    "menu": [
+      {
+        "path": "扩展/Spine MCP Server",
+        "message": "spine-mcp-panel:open-panel"
+      }
+    ],
     "messages": {
+      "spine-mcp-panel:open-panel": {
+        "methods": [ "open-panel" ],
+        "doc": "打开 Spine MCP Server 面板"
+      },
       "spine:start": {
         "methods": [ "spine:start" ],
         "doc": "启动 MCP 服务"

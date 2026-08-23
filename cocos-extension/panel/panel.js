@@ -161,14 +161,14 @@ const methods = {
     await this.loadTools();
   },
   async loadConfig() {
-    const r = await Editor.Message.request('spine-mcp', 'spine:get-config');
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-config');
     if (r && r.ok) {
       this.config = r.config || {};
       this.spineExeExists = r.spineExeExists;
     }
   },
   async saveConfig() {
-    const r = await Editor.Message.request('spine-mcp', 'spine:set-config', this.config);
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:set-config', this.config);
     if (r && r.ok) {
       this.pushLog('配置已保存', 'success');
       await this.loadConfig();
@@ -190,12 +190,12 @@ const methods = {
     }
   },
   async refreshStatus() {
-    const r = await Editor.Message.request('spine-mcp', 'spine:status');
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:status');
     this.status = r.status || 'stopped';
     this.guideStep2 = this.status === 'running';
   },
   async startServer() {
-    const r = await Editor.Message.request('spine-mcp', 'spine:start');
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:start');
     if (r && r.ok) {
       this.pushLog('MCP 服务已启动（pid ' + r.pid + '）', 'success');
     } else {
@@ -204,12 +204,12 @@ const methods = {
     await this.refreshStatus();
   },
   async stopServer() {
-    const r = await Editor.Message.request('spine-mcp', 'spine:stop');
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:stop');
     if (r && r.ok) this.pushLog('MCP 服务已停止', 'warn');
     await this.refreshStatus();
   },
   async generateConfig() {
-    const r = await Editor.Message.request('spine-mcp', 'spine:get-cli-config');
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-cli-config');
     if (r && r.ok) {
       this.aiConfigText = JSON.stringify(r.config, null, 2);
       this.guideStep3 = !!r.config;
@@ -231,7 +231,7 @@ const methods = {
       this.projects = [];
       return;
     }
-    const r = await Editor.Message.request('spine-mcp', 'spine:list-projects', this.config.workspace);
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-projects', this.config.workspace);
     if (r && r.ok) {
       this.projects = r.projects || [];
       this.guideStep1 = !!this.config.spineExe;
@@ -245,7 +245,7 @@ const methods = {
   },
   async getInfo() {
     if (!this.selectedProject) return;
-    const r = await Editor.Message.request('spine-mcp', 'spine:get-info', this.selectedProject);
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-info', this.selectedProject);
     if (r && r.ok && r.result) {
       const d = r.result.data || {};
       const bones = d.bones ? d.bones.length : 0;
@@ -258,7 +258,7 @@ const methods = {
     }
   },
   async loadTools() {
-    const r = await Editor.Message.request('spine-mcp', 'spine:list-tools');
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-tools');
     if (r && r.ok) {
       this.toolNames = (r.tools || []).map((t) => t.name);
       if (this.toolNames.length && !this.toolNames.includes(this.quickTool)) {
@@ -273,7 +273,7 @@ const methods = {
       args.projectPath = this.selectedProject;
     }
     this.pushLog(`调用 ${this.quickTool} ...`, 'info');
-    const r = await Editor.Message.request('spine-mcp', 'spine:run-tool', { tool: this.quickTool, args });
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:run-tool', { tool: this.quickTool, args });
     if (r && r.ok && r.result) {
       const msg = r.result.message || JSON.stringify(r.result).slice(0, 200);
       this.pushLog(msg, r.result.success ? 'success' : 'warn');

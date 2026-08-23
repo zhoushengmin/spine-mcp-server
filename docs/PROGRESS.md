@@ -606,4 +606,14 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - 全部消息调用（get-config/status/get-cli-config/list-tools/get-info）补 try/catch + 日志。
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 11.0 KB。
 
+### 九次修复（sharp 无法在 Cocos Electron 加载 → 回退 MCP 子进程，2026-08-23）
+用户反馈日志：`Could not load the "sharp" module using the win32-x64`；查看信息报"读取信息异常"；刷新项目无反应。
+- **根因**：Cocos 扩展主进程运行在 Electron 中，无法加载用系统 Node 编译的 **sharp 原生模块**（ABI 不匹配）→ 主进程 require dist/tools/registry.js（链式加载含 sharp 的服务）全部失败 → 工具加载、查看信息、快速工具全挂。
+- **修复**：
+  - `spine:list-tools` 改用 `dist/constants.js`（TOOL_NAMES，不含 sharp）→ 工具下拉框恢复 55 个
+  - 新增 **MCP stdio 客户端**（initialize/notifications/initialized/tools/call）：`runTool` 本地 require 失败时自动**回退到 MCP 子进程**（系统 node 运行，sharp 正常）执行工具，并还原工具 execute 结果（`message + "\n" + JSON(data)`）
+  - `spine:get-info`/`spine:run-tool` 经此回退通道可用
+  - 刷新项目：空工作区时提示"未配置工作区，请先填写目录并保存"
+- **验证**：MCP 回退路径实测还原成功（get_project_info → data.bones=31）；扩展自测 12/12；`.ccx` 重新打包 12.4 KB。
+
 

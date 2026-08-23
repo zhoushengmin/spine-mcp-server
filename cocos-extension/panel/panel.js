@@ -392,17 +392,26 @@ const methods = {
     if (!ws) {
       this._s.projects = [];
       this._renderProjects();
+      this._pushLogDom('未配置工作区，请先填写「工作区」目录并保存', 'warn');
       return;
     }
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-projects', ws);
-    if (r && r.ok) {
-      this._s.projects = r.projects || [];
-      if (this._s.projects.length && !this._s.selectedProject) {
-        this._s.selectedProject = this._s.projects[0].path;
+    this._pushLogDom('正在扫描：' + ws + ' ...', 'info');
+    try {
+      const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-projects', ws);
+      if (r && r.ok) {
+        this._s.projects = r.projects || [];
+        if (this._s.projects.length && !this._s.selectedProject) {
+          this._s.selectedProject = this._s.projects[0].path;
+        }
+        this._pushLogDom('扫描完成：' + this._s.projects.length + ' 个项目', 'info');
+      } else {
+        this._s.projects = [];
+        this._pushLogDom('扫描失败：' + ((r && r.error) || '未知错误'), 'error');
       }
-    } else {
+    } catch (e) {
       this._s.projects = [];
-      this._pushLogDom('扫描失败：' + (r && r.error), 'error');
+      console.error('[spine-mcp] list-projects 异常:', e);
+      this._pushLogDom('扫描异常，请查看控制台', 'error');
     }
     this._renderProjects();
   },

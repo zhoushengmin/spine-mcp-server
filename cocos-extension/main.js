@@ -67,6 +67,82 @@ function resolveNode() {
   return 'node';
 }
 
+// ---------------- MCP stdio 客户端（用于回退调用，避免本进程加载 sharp） ----------------
+// Cocos 扩展主进程运行在 Electron 中，无法加载用系统 Node 编译的 sharp 原生模块；
+// 因此执行工具时优先本地 require（某些环境可用），失败则回退到 MCP 子进程（系统 node 运行，sharp 正常）。
+let mcpBuf = '';
+let mcpReqSeq = 1;
+const mcpPending = new Map(); // id -> { resolve, reject, timer }
+
+function handleMcpData(chunk) {
+  mcpBuf += chunk.toString();
+  let idx;
+  while ((idx = mcpBuf.indexOf('\n')) >= 0) {
+    const line = mcpBuf.slice(0, idx).trim();
+    mcpBuf = mcpBuf.slice(idx + 1);
+    if (!line) continue;
+    try {
+      const msg = JSON.parse(line);
+      if (msg && msg.id != null && mcpPending.has(msg.id)) {
+        const { resolve, reject, timer } = mcpPending.get(msg.id);
+        mcpPending.delete(msg.id);
+        clearTimeout(timer);
+        if (msg.error) reject(new Error(msg.error.message || 'MCP 错误'));
+        else resolve(msg.result);
+      }
+    } catch (e) {
+      // 忽略非 JSON 行
+    }
+  }
+}
+
+function mcpRequest(method, params) {
+  return new Promise((resolve, reject) => {
+    if (!mcpProcess || !mcpProcess.stdin || mcpProcess.stdin.destroyed) {
+      reject(new Error('MCP 服务未运行'));
+      return;
+    }
+    const id = mcpReqSeq++;
+    const timer = setTimeout(() => { mcpPending.delete(id); reject(new Error('MCP 请求超时')); }, 120000);
+    mcpPending.set(id, { resolve, reject, timer });
+    mcpProcess.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
+  });
+}
+
+function initMcpClient() {
+  if (!mcpProcess) return;
+  mcpProcess.stdout.on('data', handleMcpData);
+  mcpRequest('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'spine-mcp-panel', version: '1.0.0' } })
+    .then(() => {
+      mcpProcess.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }) + '\n');
+    })
+    .catch((e) => console.error('[spine-mcp] MCP initialize 失败:', e.message));
+}
+
+/** 通过 MCP 子进程调用工具（还原工具 execute 结果对象） */
+async function runToolViaMcp(toolName, args) {
+  if (!mcpProcess || mcpProcess.exitCode !== null) {
+    const r = await startServer();
+    if (!r.ok) return { ok: false, error: r.error || 'MCP 服务启动失败' };
+  }
+  try {
+    const resp = await mcpRequest('tools/call', { name: toolName, arguments: args || {} });
+    const text = resp && resp.content && resp.content[0] && resp.content[0].text;
+    if (text == null) return { ok: true, result: { success: false, message: '工具无返回结果' } };
+    if (resp && resp.isError) return { ok: true, result: { success: false, message: text } };
+    // server 端 text = message + "\n" + JSON.stringify(data)
+    const nl = text.indexOf('\n');
+    if (nl < 0) return { ok: true, result: { success: true, message: text } };
+    const message = text.slice(0, nl);
+    const rest = text.slice(nl + 1).replace(/\n建议：[\s\S]*$/, '').replace(/\n⚠️[\s\S]*$/, '').trim();
+    let data = null;
+    try { data = JSON.parse(rest); } catch (e) { data = rest; }
+    return { ok: true, result: { success: true, message, data } };
+  } catch (e) {
+    return { ok: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 // ---------------- 服务生命周期 ----------------
 async function startServer() {
   if (mcpProcess) return { ok: true, status: 'running' };
@@ -95,6 +171,7 @@ async function startServer() {
       if (/libpng warning|Load profile failed|Welcome data download failed|WARNING: Welcome/i.test(text)) return;
       console.error('[spine-mcp]', text.trim());
     });
+    initMcpClient();
     mcpStatus = 'running';
     return { ok: true, status: 'running', pid: mcpProcess.pid };
   } catch (e) {
@@ -124,7 +201,14 @@ function requireTools(serverPath) {
 async function runTool(toolName, args) {
   const cfg = await loadConfig();
   const serverPath = resolveServerPath(cfg.serverPath);
-  const tools = requireTools(serverPath);
+  let tools;
+  try {
+    tools = requireTools(serverPath);
+  } catch (e) {
+    // 本进程加载失败（sharp ABI 不匹配等）→ 回退 MCP 子进程（系统 node 运行）
+    console.error('[spine-mcp] 本进程加载工具失败，回退 MCP 子进程:', e.message);
+    return runToolViaMcp(toolName, args);
+  }
   const tool = tools.allTools.find((t) => t.name === toolName);
   if (!tool) {
     return { ok: false, error: `未知工具：${toolName}`, errorCode: 'E_INVALID_ARGUMENT' };
@@ -180,9 +264,10 @@ const methods = {
   'spine:run-tool': async ({ tool, args }) => runTool(tool, args),
   'spine:list-tools': async () => {
     try {
-      const serverPath = resolveServerPath((await loadConfig()).serverPath);
-      const tools = requireTools(serverPath);
-      return { ok: true, tools: tools.allTools.map((t) => ({ name: t.name, description: t.description })) };
+      // 用 constants.js（不依赖 sharp）列出工具名，避免本进程加载 sharp 失败
+      const consts = require(path.join(resolveServerPath((await loadConfig()).serverPath), 'dist', 'constants.js'));
+      const names = Object.values(consts.TOOL_NAMES || {});
+      return { ok: true, tools: names.map((n) => ({ name: n, description: '' })) };
     } catch (e) {
       return { ok: false, error: String(e), tools: [] };
     }

@@ -56,9 +56,10 @@ import { SplitAtlasTool } from "./split-atlas.tool";
 import { RepackAtlasTool } from "./repack-atlas.tool";
 import { BuildSkeletonTool } from "./build-skeleton.tool";
 import { ValidateReferencesTool } from "./validate-references.tool";
+import { ListCocosAssetsTool } from "./list-cocos-assets.tool";
 import { RollbackTool } from "./rollback.tool";
 
-/** 全部已注册工具（Phase 3 + Phase 4 + Phase 5 = 54 个） */
+/** 全部已注册工具（Phase 3 + Phase 4 + Phase 5 + Phase 6 = 55 个） */
 export const allTools: ToolDefinition[] = [
   // —— 信息查询 ——
   new GetProjectInfoTool(),
@@ -120,6 +121,7 @@ export const allTools: ToolDefinition[] = [
   new RepackAtlasTool(),
   new BuildSkeletonTool(),
   new ValidateReferencesTool(),
+  new ListCocosAssetsTool(),
   new RollbackTool(),
 ];
 

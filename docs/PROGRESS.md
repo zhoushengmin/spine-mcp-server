@@ -13,7 +13,7 @@
 | Phase 3 | MCP 工具开发 - 基础 | ✅ 完成 | server / registry / 21 个基础工具 |
 | Phase 4 | 高级骨骼模块 | ✅ 完成 | 约束 / 网格 / 曲线 / 事件 |
 | Phase 5 | 图片拆分 + 骨骼构建 | ✅ 完成 | split_atlas / build_skeleton / repack_atlas / JS 渲染 |
-| Phase 6 | Cocos 集成 + 面板 UI | ⬜ 未开始 | 扩展面板 / Vue3 |
+| Phase 6 | Cocos 集成 + 面板 UI | ✅ 完成 | cocos-extension 面板 / 安装向导 / .ccx |
 | Phase 7 | Web GUI（可选） | ⬜ 未开始 | 可视化面板 |
 | Phase 8 | 测试与文档 | ⬜ 未开始 | 单测 / 集成 / 打包 |
 
@@ -359,3 +359,42 @@ tests/self-test-mcp.cjs          — MCP 协议级自测（10 断言）
 3. **render_preview 完整实现**：用 sharp 实现骨骼世界矩阵（Spine Bone.update 算法）+ rotate/translate/scale/shear 关键帧线性插值 + region 附件合成。⚠️ 限制：**mesh 附件按未变形 region 近似绘制**（不做顶点扭曲），shear 参与矩阵但绘制只支持旋转/缩放。
 
 **下一步**：Phase 6（Cocos Creator 扩展面板 UI + 场景集成 + .ccx 打包）。
+
+---
+
+## Phase 6：Cocos 集成 + 面板 UI（已完成）
+
+### 目标
+提供 Cocos Creator 3.8 可视化扩展面板：一键启动 MCP 服务、扫描 Spine 项目、调用 Spine 工具、生成 AI 客户端配置。工具总数 54 → **55 个**（补 spine_list_cocos_assets，与规格书一致）。
+
+### 任务清单
+
+| # | 任务 | 状态 | 验证结果 |
+|---|------|:----:|---------|
+| 6.1 | cocos-extension/package.json 扩展清单 | ✅ | 清单 + 面板 + 9 个消息方法 |
+| 6.2 | asset-scanner（递归扫描 .spine） | ✅ | examples 扫描 15+ 项目 |
+| 6.3 | spine_list_cocos_assets 工具 | ✅ | 注册到 MCP（55 个） |
+| 6.4 | panel.js 面板 UI（模板/样式/方法） | ✅ | 模板/样式/10 个方法齐备 |
+| 6.5 | main.js 主进程（面板桥接 + 服务启停 + 配置持久化） | ✅ | mock 测试 12/12 |
+| 6.6 | 新手引导（三步） | ✅ | 模板内实现 |
+| 6.7 | scripts/installer.js 安装向导 | ✅ | 检测 Spine/Cocos/Node + 写 .env |
+| 6.8 | scripts/package-ccx.js .ccx 打包 | ✅ | 生成 7.5 KB .ccx |
+
+### 当前进度明细（2026-08-22 完成 Phase 6）
+
+**新增文件**：cocos-extension/（package.json、main.js、panel/panel.js）、src/spine/asset-scanner.ts、spine_list_cocos_assets 工具、scripts/installer.js、scripts/package-ccx.js、docs/cocos-extension-README.md、tests/self-test-extension.cjs
+
+**验证结果**
+| 测试 | 结果 |
+|-------|:--:|
+| 扩展桥接 tests/self-test-extension.cjs（mock Editor） | ✅ 12/12 |
+| Phase 3 回归 | ✅ 37/37 ｜ Phase 4 回归 | ✅ 45/45 |
+| Phase 5 回归 | ✅ 13/13 ｜ MCP 协议（listTools = 55） | ✅ 10/10 |
+| .ccx 打包 | ✅ dist-ccx/spine-mcp-panel.ccx |
+
+### ⚠️ 需要用户验证的部分（Cocos 编辑器 UI 无法自测）
+1. 在 Cocos Creator 中安装扩展：**扩展 → 扩展管理器 → 本地扩展 → 添加本地扩展 → 选择 `cocos-extension` 目录**
+2. 打开面板：**扩展 → Spine MCP Server**
+3. 验证：Spine 路径检测、服务启动状态灯、工作区扫描、AI 配置生成/复制、项目信息查看、快速工具调用
+
+**下一步**：Phase 8 测试与文档（或按需先做 Phase 7 Web GUI）。

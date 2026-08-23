@@ -12,6 +12,12 @@
     "start": "node dist/index.js",
     "check": "node dist/index.js check",
     "info": "node dist/index.js info",
+    "installer": "node scripts/installer.js",
+    "package:ccx": "node scripts/package-ccx.js",
+    "test:p3": "node tests/self-test-tools.cjs",
+    "test:p4": "node tests/self-test-p4.cjs",
+    "test:p5": "node tests/self-test-p5.cjs",
+    "test:mcp": "node tests/self-test-mcp.cjs",
     "clean": "rm -rf dist"
   },
   "license": "MIT",

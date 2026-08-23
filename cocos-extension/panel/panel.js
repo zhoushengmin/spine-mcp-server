@@ -1,11 +1,13 @@
 /**
  * Spine MCP Server — Cocos Creator 扩展面板
- * Cocos 3.8 面板：template + style + methods（Vue 编译）
+ * Cocos 3.8 面板（Editor.Panel.define）：
+ *  - 纯 HTML/CSS/JS，不依赖 Vue 编译，保证所有版本兼容
+ *  - 深色高对比设计，暗色/亮色主题下文字均清晰可读
  */
 'use strict';
 
 const template = `
-<div id="spine-mcp-panel" class="sm-root">
+<div id="sm-root" class="sm-root">
   <!-- 顶部状态栏 -->
   <header class="sm-header">
     <div class="sm-title">
@@ -14,26 +16,19 @@ const template = `
       <span class="sm-version">v1.0.0</span>
     </div>
     <div class="sm-status-row">
-      <span class="sm-dot" :class="statusClass"></span>
-      <span>{{ statusText }}</span>
-      <button class="sm-btn sm-btn-primary" @click="startServer" :disabled="isRunning">启动服务</button>
-      <button class="sm-btn" @click="stopServer" :disabled="!isRunning">停止服务</button>
+      <span id="sm-dot" class="sm-dot"></span>
+      <span id="sm-status" class="sm-status-text">未知</span>
+      <button id="sm-btn-start" class="sm-btn sm-btn-primary">启动服务</button>
+      <button id="sm-btn-stop" class="sm-btn">停止服务</button>
     </div>
   </header>
 
-  <!-- 新手引导（三步） -->
-  <section class="sm-guide" v-if="showGuide">
-    <div class="sm-guide-title">📋 三步上手</div>
+  <!-- 配置进度 -->
+  <section class="sm-guide">
     <div class="sm-guide-steps">
-      <div class="sm-step" :class="{ 'sm-step-done': guideStep1 }">
-        <span class="sm-step-ic">{{ guideStep1 ? '✅' : '1️⃣' }}</span> 配置 Spine 路径
-      </div>
-      <div class="sm-step" :class="{ 'sm-step-done': guideStep2 }">
-        <span class="sm-step-ic">{{ guideStep2 ? '✅' : '2️⃣' }}</span> 启动服务
-      </div>
-      <div class="sm-step" :class="{ 'sm-step-done': guideStep3 }">
-        <span class="sm-step-ic">{{ guideStep3 ? '✅' : '3️⃣' }}</span> 复制配置到 AI
-      </div>
+      <div class="sm-step"><span id="sm-g1" class="sm-step-ic">①</span>配置 Spine 路径</div>
+      <div class="sm-step"><span id="sm-g2" class="sm-step-ic">②</span>启动服务</div>
+      <div class="sm-step"><span id="sm-g3" class="sm-step-ic">③</span>复制配置到 AI</div>
     </div>
   </section>
 
@@ -42,50 +37,45 @@ const template = `
     <div class="sm-section-title">⚙️ 基本配置</div>
     <div class="sm-field">
       <label>Spine 路径</label>
-      <input v-model="config.spineExe" placeholder="D:/cocos/SpinePro3.8.75/Spine.com" />
-      <button class="sm-btn" @click="browseSpine">浏览</button>
+      <input id="sm-spine" class="sm-input" placeholder="D:/cocos/SpinePro3.8.75/Spine.com" />
+      <button id="sm-browse-spine" class="sm-btn">浏览</button>
     </div>
     <div class="sm-field">
       <label>Server 路径</label>
-      <input v-model="config.serverPath" placeholder="D:/cocos/spine-mcp-server" />
+      <input id="sm-server" class="sm-input" placeholder="D:/cocos/spine-mcp-server" />
     </div>
     <div class="sm-field">
       <label>工作区</label>
-      <input v-model="config.workspace" placeholder="扫描 .spine 的目录（如 Cocos 项目 assets）" />
-      <button class="sm-btn" @click="browseWorkspace">浏览</button>
-      <button class="sm-btn" @click="saveConfig">保存</button>
+      <input id="sm-workspace" class="sm-input" placeholder="扫描 .spine 的目录（如 Cocos 项目 assets）" />
+      <button id="sm-browse-ws" class="sm-btn">浏览</button>
     </div>
-    <div class="sm-field" v-if="!spineExeExists" style="color:#f56c6c">
-      ⚠️ Spine.exe 不存在，请检查路径
+    <div class="sm-field">
+      <span id="sm-spine-warn" class="sm-warn" style="display:none">⚠️ Spine.exe 不存在，请检查路径</span>
+    </div>
+    <div class="sm-field">
+      <button id="sm-save" class="sm-btn sm-btn-primary">保存配置</button>
+      <button id="sm-scan" class="sm-btn">刷新项目</button>
     </div>
   </section>
 
   <!-- AI 客户端配置 -->
   <section class="sm-section">
     <div class="sm-section-title">🤖 AI 客户端配置</div>
-    <textarea class="sm-json" rows="10" readonly v-model="aiConfigText"></textarea>
+    <textarea id="sm-ai-config" class="sm-json" rows="6" readonly></textarea>
     <div class="sm-row">
-      <button class="sm-btn sm-btn-primary" @click="generateConfig">生成配置</button>
-      <button class="sm-btn" @click="copyConfig">{{ copied ? '已复制！✓' : '一键复制' }}</button>
+      <button id="sm-gen-config" class="sm-btn sm-btn-primary">生成配置</button>
+      <button id="sm-copy-config" class="sm-btn">一键复制</button>
     </div>
   </section>
 
   <!-- 项目列表 -->
   <section class="sm-section">
-    <div class="sm-section-title">📦 Spine 项目（{{ projects.length }}）
-      <button class="sm-btn sm-btn-sm" @click="scanProjects">刷新</button>
-    </div>
-    <div class="sm-project-list">
-      <div class="sm-project" v-for="p in projects" :key="p.path" @click="selectProject(p.path)" :class="{ 'sm-project-active': p.path === selectedProject }">
-        <span class="sm-project-name">{{ p.name }}</span>
-        <span class="sm-project-path">{{ p.path }}</span>
-      </div>
-      <div v-if="!projects.length" class="sm-empty">暂无项目，配置工作区后点击刷新</div>
-    </div>
-    <div class="sm-field" v-if="selectedProject">
+    <div class="sm-section-title">📦 Spine 项目 <span id="sm-proj-count" class="sm-count"></span></div>
+    <div id="sm-projects" class="sm-project-list"></div>
+    <div class="sm-field" style="margin-top:6px">
       <label>选中</label>
-      <input :value="selectedProject" readonly />
-      <button class="sm-btn" @click="getInfo">查看信息</button>
+      <input id="sm-selected" class="sm-input" readonly placeholder="点击上方项目" />
+      <button id="sm-info" class="sm-btn">查看信息</button>
     </div>
   </section>
 
@@ -94,196 +84,284 @@ const template = `
     <div class="sm-section-title">🔧 快速工具</div>
     <div class="sm-field">
       <label>工具</label>
-      <select v-model="quickTool">
-        <option v-for="t in toolNames" :key="t" :value="t">{{ t }}</option>
-      </select>
-      <button class="sm-btn sm-btn-primary" @click="runQuickTool">执行</button>
+      <select id="sm-tool" class="sm-input"></select>
+      <button id="sm-run" class="sm-btn sm-btn-primary">执行</button>
     </div>
   </section>
 
   <!-- 操作日志 -->
   <section class="sm-section">
-    <div class="sm-section-title">📋 操作日志 <button class="sm-btn sm-btn-sm" @click="logs = []">清空</button></div>
-    <div class="sm-log">
-      <div v-for="(log, i) in logs" :key="i" :class="'sm-log-' + log.level">{{ log.text }}</div>
-    </div>
+    <div class="sm-section-title">📋 操作日志 <button id="sm-clear-log" class="sm-btn sm-btn-sm">清空</button></div>
+    <div id="sm-log" class="sm-log"></div>
   </section>
 </div>
 `;
 
 const style = `
-.sm-root { padding: 8px 12px; font-size: 13px; color: #333; display: flex; flex-direction: column; gap: 10px; overflow: auto; height: 100%; }
-.sm-header { border-bottom: 1px solid #e4e4e4; padding-bottom: 8px; }
-.sm-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.sm-version { color: #999; font-size: 11px; font-weight: 400; }
-.sm-status-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.sm-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; display: inline-block; }
-.sm-dot-running { background: #67c23a; }
-.sm-dot-stopped { background: #909399; }
-.sm-dot-error { background: #f56c6c; }
-.sm-btn { border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; padding: 4px 12px; cursor: pointer; font-size: 12px; }
-.sm-btn:hover { background: #f5f7fa; }
-.sm-btn-primary { background: #409eff; color: #fff; border-color: #409eff; }
-.sm-btn-primary:hover { background: #66b1ff; }
+.sm-root { padding: 12px 16px; font-size: 13px; color: #e8e8e8; background: #1e1e1e; display: flex; flex-direction: column; gap: 12px; overflow: auto; height: 100%; box-sizing: border-box; }
+.sm-header { border-bottom: 1px solid #3a3a3a; padding-bottom: 10px; }
+.sm-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: #ffffff; }
+.sm-logo { font-size: 18px; }
+.sm-version { color: #8a8a8a; font-size: 11px; font-weight: 400; }
+.sm-status-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.sm-dot { width: 10px; height: 10px; border-radius: 50%; background: #6b6b6b; display: inline-block; flex-shrink: 0; }
+.sm-dot.running { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+.sm-dot.stopped { background: #6b6b6b; }
+.sm-dot.error { background: #f44336; }
+.sm-status-text { color: #c8c8c8; min-width: 90px; }
+.sm-btn { background: #333; color: #e8e8e8; border: 1px solid #4a4a4a; border-radius: 4px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: background .15s; }
+.sm-btn:hover { background: #3d3d3d; }
+.sm-btn:disabled { opacity: .5; cursor: not-allowed; }
+.sm-btn-primary { background: #2f6fd0; border-color: #2f6fd0; color: #fff; }
+.sm-btn-primary:hover { background: #3b7be0; }
 .sm-btn-sm { padding: 2px 8px; font-size: 11px; }
-.sm-guide { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 4px; padding: 8px; }
-.sm-guide-title { font-weight: 600; margin-bottom: 6px; }
-.sm-guide-steps { display: flex; gap: 12px; }
-.sm-step { color: #999; }
-.sm-step-done { color: #67c23a; }
-.sm-section { border: 1px solid #e4e4e4; border-radius: 4px; padding: 8px; }
-.sm-section-title { font-weight: 600; margin-bottom: 6px; }
-.sm-field { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.sm-field label { width: 80px; flex-shrink: 0; color: #666; }
-.sm-field input, .sm-field select { flex: 1; border: 1px solid #dcdfe6; border-radius: 4px; padding: 4px 8px; font-size: 12px; }
-.sm-json { width: 100%; border: 1px solid #dcdfe6; border-radius: 4px; font-family: monospace; font-size: 11px; background: #fafafa; }
-.sm-row { display: flex; gap: 8px; margin-top: 6px; }
-.sm-project-list { max-height: 180px; overflow: auto; border: 1px solid #ebeef5; border-radius: 4px; }
-.sm-project { padding: 4px 8px; cursor: pointer; display: flex; flex-direction: column; }
-.sm-project:hover { background: #f5f7fa; }
-.sm-project-active { background: #ecf5ff; }
-.sm-project-name { font-weight: 600; }
-.sm-project-path { color: #909399; font-size: 11px; word-break: break-all; }
-.sm-empty { color: #999; padding: 8px; }
-.sm-log { max-height: 160px; overflow: auto; background: #1e1e1e; color: #ccc; border-radius: 4px; padding: 6px; font-family: monospace; font-size: 11px; }
-.sm-log-info { color: #ccc; }
-.sm-log-warn { color: #e6a23c; }
-.sm-log-error { color: #f56c6c; }
-.sm-log-success { color: #67c23a; }
+.sm-guide { background: #262626; border: 1px solid #3a3a3a; border-radius: 6px; padding: 10px 12px; }
+.sm-guide-steps { display: flex; gap: 16px; flex-wrap: wrap; }
+.sm-step { display: flex; align-items: center; gap: 6px; color: #9d9d9d; font-size: 12px; }
+.sm-step-ic { font-size: 14px; }
+.sm-step.done { color: #6ec96e; }
+.sm-section { border: 1px solid #3a3a3a; border-radius: 6px; padding: 10px 12px; background: #232323; }
+.sm-section-title { font-weight: 600; margin-bottom: 8px; color: #ffffff; display: flex; align-items: center; gap: 8px; }
+.sm-count { color: #8a8a8a; font-size: 11px; font-weight: 400; }
+.sm-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.sm-field label { width: 88px; flex-shrink: 0; color: #b0b0b0; }
+.sm-input { flex: 1; background: #2c2c2c; color: #e8e8e8; border: 1px solid #4a4a4a; border-radius: 4px; padding: 5px 8px; font-size: 12px; min-width: 0; }
+.sm-input:focus { outline: none; border-color: #2f6fd0; }
+.sm-input::placeholder { color: #6b6b6b; }
+.sm-warn { color: #ffb74d; font-size: 12px; }
+.sm-json { width: 100%; background: #1a1a1a; color: #9ece6a; border: 1px solid #4a4a4a; border-radius: 4px; font-family: Consolas, Menlo, monospace; font-size: 11px; resize: vertical; box-sizing: border-box; padding: 6px; }
+.sm-row { display: flex; gap: 8px; margin-top: 8px; }
+.sm-project-list { max-height: 180px; overflow: auto; border: 1px solid #3a3a3a; border-radius: 4px; background: #1a1a1a; }
+.sm-project { padding: 6px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #2a2a2a; }
+.sm-project:last-child { border-bottom: none; }
+.sm-project:hover { background: #2e2e2e; }
+.sm-project.active { background: #1f3a5f; }
+.sm-project-name { font-weight: 600; color: #e8e8e8; }
+.sm-project-path { color: #8a8a8a; font-size: 11px; word-break: break-all; }
+.sm-empty { color: #8a8a8a; padding: 10px; font-size: 12px; }
+.sm-log { max-height: 160px; overflow: auto; background: #141414; border: 1px solid #3a3a3a; border-radius: 4px; padding: 8px; font-family: Consolas, Menlo, monospace; font-size: 11px; line-height: 1.6; }
+.sm-log div { white-space: pre-wrap; word-break: break-all; }
+.sm-log .info { color: #c8c8c8; }
+.sm-log .warn { color: #e6c07b; }
+.sm-log .error { color: #f07178; }
+.sm-log .success { color: #9ece6a; }
 `;
 
 const methods = {
+  // 初始化渲染（ready 中调用）
+  _renderStatus() {
+    const dot = this.el.querySelector('#sm-dot');
+    const txt = this.el.querySelector('#sm-status');
+    dot.className = 'sm-dot ' + (this._s.status || 'stopped');
+    const map = { running: '运行中', stopped: '已停止', starting: '启动中', error: '异常' };
+    txt.textContent = map[this._s.status] || this._s.status || '未知';
+    this.el.querySelector('#sm-btn-start').disabled = this._s.status === 'running';
+    this.el.querySelector('#sm-btn-stop').disabled = this._s.status !== 'running';
+    const g2 = this.el.querySelector('#sm-g2');
+    g2.textContent = this._s.status === 'running' ? '✅' : '②';
+    g2.parentElement.classList.toggle('done', this._s.status === 'running');
+  },
+  _renderConfig() {
+    this.el.querySelector('#sm-spine').value = this._s.config.spineExe || '';
+    this.el.querySelector('#sm-server').value = this._s.config.serverPath || '';
+    this.el.querySelector('#sm-workspace').value = this._s.config.workspace || '';
+    const warn = this.el.querySelector('#sm-spine-warn');
+    warn.style.display = this._s.spineExeExists ? 'none' : 'block';
+    const g1 = this.el.querySelector('#sm-g1');
+    g1.textContent = this._s.config.spineExe ? '✅' : '①';
+    g1.parentElement.classList.toggle('done', !!this._s.config.spineExe);
+  },
+  _renderProjects() {
+    const list = this.el.querySelector('#sm-projects');
+    this.el.querySelector('#sm-proj-count').textContent = '(' + this._s.projects.length + ')';
+    if (!this._s.projects.length) {
+      list.innerHTML = '<div class="sm-empty">暂无项目，配置工作区后点击「刷新项目」</div>';
+      return;
+    }
+    list.innerHTML = this._s.projects.map((p) => {
+      const active = p.path === this._s.selectedProject ? ' active' : '';
+      return `<div class="sm-project${active}" data-path="${p.path.replace(/"/g, '&quot;')}">
+        <span class="sm-project-name">${p.name || '?'}</span>
+        <span class="sm-project-path">${(p.path || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.sm-project').forEach((el) => {
+      el.addEventListener('click', () => {
+        this._s.selectedProject = el.getAttribute('data-path');
+        this.el.querySelector('#sm-selected').value = this._s.selectedProject;
+        this._renderProjects();
+      });
+    });
+    this.el.querySelector('#sm-selected').value = this._s.selectedProject || '';
+  },
+  _renderTools() {
+    const sel = this.el.querySelector('#sm-tool');
+    const names = this._s.toolNames || [];
+    sel.innerHTML = names.map((n) => `<option value="${n}">${n}</option>`).join('');
+    if (this._s.quickTool && names.includes(this._s.quickTool)) sel.value = this._s.quickTool;
+  },
+  _renderAiConfig() {
+    this.el.querySelector('#sm-ai-config').value = this._s.aiConfigText || '';
+    const g3 = this.el.querySelector('#sm-g3');
+    g3.textContent = this._s.aiConfigText ? '✅' : '③';
+    g3.parentElement.classList.toggle('done', !!this._s.aiConfigText);
+  },
+  _pushLogDom(text, level) {
+    const box = this.el.querySelector('#sm-log');
+    const div = document.createElement('div');
+    div.className = level || 'info';
+    div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + text;
+    box.appendChild(div);
+    while (box.children.length > 200) box.removeChild(box.firstChild);
+    box.scrollTop = box.scrollHeight;
+  },
+
+  // ---------- 功能 ----------
   async refreshAll() {
     await this.loadConfig();
     await this.refreshStatus();
     await this.generateConfig();
     await this.scanProjects();
     await this.loadTools();
+    this._renderConfig();
+    this._renderStatus();
+    this._renderProjects();
+    this._renderTools();
+    this._renderAiConfig();
   },
   async loadConfig() {
     const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-config');
     if (r && r.ok) {
-      this.config = r.config || {};
-      this.spineExeExists = r.spineExeExists;
+      this._s.config = r.config || {};
+      this._s.spineExeExists = r.spineExeExists !== false;
+      this._renderConfig();
     }
   },
   async saveConfig() {
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:set-config', this.config);
+    const cfg = {
+      spineExe: this.el.querySelector('#sm-spine').value.trim(),
+      serverPath: this.el.querySelector('#sm-server').value.trim(),
+      workspace: this.el.querySelector('#sm-workspace').value.trim(),
+    };
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:set-config', cfg);
     if (r && r.ok) {
-      this.pushLog('配置已保存', 'success');
+      this._s.config = r.config || cfg;
+      this._pushLogDom('配置已保存', 'success');
       await this.loadConfig();
       await this.generateConfig();
+      await this.scanProjects();
+    } else {
+      this._pushLogDom('保存失败：' + (r && r.error), 'error');
     }
   },
   async browseSpine() {
     const file = await Editor.Dialog.select({ type: 'file', filters: [{ name: 'Spine', extensions: ['exe', 'bat', 'com'] }] });
     if (file && file.filePaths && file.filePaths.length) {
-      this.config.spineExe = file.filePaths[0];
+      this.el.querySelector('#sm-spine').value = file.filePaths[0];
       await this.saveConfig();
     }
   },
   async browseWorkspace() {
     const dir = await Editor.Dialog.select({ type: 'directory' });
     if (dir && dir.filePaths && dir.filePaths.length) {
-      this.config.workspace = dir.filePaths[0];
+      this.el.querySelector('#sm-workspace').value = dir.filePaths[0];
       await this.saveConfig();
     }
   },
   async refreshStatus() {
     const r = await Editor.Message.request('spine-mcp-panel', 'spine:status');
-    this.status = r.status || 'stopped';
-    this.guideStep2 = this.status === 'running';
+    this._s.status = (r && r.status) || 'stopped';
+    this._renderStatus();
   },
   async startServer() {
     const r = await Editor.Message.request('spine-mcp-panel', 'spine:start');
     if (r && r.ok) {
-      this.pushLog('MCP 服务已启动（pid ' + r.pid + '）', 'success');
+      this._pushLogDom('MCP 服务已启动（pid ' + r.pid + '）', 'success');
     } else {
-      this.pushLog('启动失败：' + (r && r.error), 'error');
+      this._pushLogDom('启动失败：' + (r && r.error), 'error');
     }
     await this.refreshStatus();
   },
   async stopServer() {
     const r = await Editor.Message.request('spine-mcp-panel', 'spine:stop');
-    if (r && r.ok) this.pushLog('MCP 服务已停止', 'warn');
+    if (r && r.ok) this._pushLogDom('MCP 服务已停止', 'warn');
     await this.refreshStatus();
   },
   async generateConfig() {
     const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-cli-config');
-    if (r && r.ok) {
-      this.aiConfigText = JSON.stringify(r.config, null, 2);
-      this.guideStep3 = !!r.config;
+    if (r && r.ok && r.config) {
+      this._s.aiConfigText = JSON.stringify(r.config, null, 2);
+      this._renderAiConfig();
+      return r.config;
     }
+    return null;
   },
   async copyConfig() {
-    const text = this.aiConfigText || (await this.generateConfig());
+    if (!this._s.aiConfigText) await this.generateConfig();
     try {
-      await Editor.Clipboard.write(this.aiConfigText);
-      this.copied = true;
-      setTimeout(() => { this.copied = false; }, 2000);
-      this.pushLog('配置已复制到剪贴板', 'success');
+      await Editor.Clipboard.write(this._s.aiConfigText);
+      this._pushLogDom('配置已复制到剪贴板', 'success');
     } catch (e) {
-      this.pushLog('复制失败：' + String(e), 'error');
+      this._pushLogDom('复制失败：' + String(e), 'error');
     }
   },
   async scanProjects() {
-    if (!this.config.workspace) {
-      this.projects = [];
+    const ws = this.el.querySelector('#sm-workspace').value.trim() || (this._s.config && this._s.config.workspace);
+    if (!ws) {
+      this._s.projects = [];
+      this._renderProjects();
       return;
     }
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-projects', this.config.workspace);
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-projects', ws);
     if (r && r.ok) {
-      this.projects = r.projects || [];
-      this.guideStep1 = !!this.config.spineExe;
+      this._s.projects = r.projects || [];
+      if (this._s.projects.length && !this._s.selectedProject) {
+        this._s.selectedProject = this._s.projects[0].path;
+      }
     } else {
-      this.projects = [];
-      this.pushLog('扫描失败：' + (r && r.error), 'error');
+      this._s.projects = [];
+      this._pushLogDom('扫描失败：' + (r && r.error), 'error');
     }
-  },
-  selectProject(p) {
-    this.selectedProject = p;
+    this._renderProjects();
   },
   async getInfo() {
-    if (!this.selectedProject) return;
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-info', this.selectedProject);
-    if (r && r.ok && r.result) {
-      const d = r.result.data || {};
-      const bones = d.bones ? d.bones.length : 0;
-      const slots = d.slots ? d.slots.length : 0;
-      const anims = d.animations ? d.animations.length : 0;
-      const skins = d.skins ? d.skins.length : 0;
-      this.pushLog(`[${d.skeletonName || '骨架'}] ${bones} 骨骼 / ${slots} 插槽 / ${skins} 皮肤 / ${anims} 动画`, 'success');
+    if (!this._s.selectedProject) {
+      this._pushLogDom('请先选择项目', 'warn');
+      return;
+    }
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-info', this._s.selectedProject);
+    if (r && r.ok && r.result && r.result.data) {
+      const d = r.result.data;
+      this._pushLogDom(`[${d.skeletonName || '骨架'}] ${(d.bones || []).length} 骨骼 / ${(d.slots || []).length} 插槽 / ${(d.skins || []).length} 皮肤 / ${(d.animations || []).length} 动画`, 'success');
     } else {
-      this.pushLog('读取信息失败：' + ((r && r.result && r.result.message) || '未知'), 'error');
+      this._pushLogDom('读取信息失败：' + ((r && r.result && r.result.message) || '未知'), 'error');
     }
   },
   async loadTools() {
     const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-tools');
     if (r && r.ok) {
-      this.toolNames = (r.tools || []).map((t) => t.name);
-      if (this.toolNames.length && !this.toolNames.includes(this.quickTool)) {
-        this.quickTool = this.toolNames[0];
-      }
+      this._s.toolNames = (r.tools || []).map((t) => t.name);
+      this._s.quickTool = this._s.toolNames[0] || '';
+      this._renderTools();
     }
   },
   async runQuickTool() {
-    if (!this.quickTool) return;
-    let args = {};
-    if (this.selectedProject) {
-      args.projectPath = this.selectedProject;
+    const sel = this.el.querySelector('#sm-tool');
+    const tool = sel.value || this._s.quickTool;
+    if (!tool) {
+      this._pushLogDom('未加载到工具列表', 'warn');
+      return;
     }
-    this.pushLog(`调用 ${this.quickTool} ...`, 'info');
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:run-tool', { tool: this.quickTool, args });
+    const args = {};
+    if (this._s.selectedProject) args.projectPath = this._s.selectedProject;
+    this._pushLogDom(`调用 ${tool} ...`, 'info');
+    const r = await Editor.Message.request('spine-mcp-panel', 'spine:run-tool', { tool, args });
     if (r && r.ok && r.result) {
-      const msg = r.result.message || JSON.stringify(r.result).slice(0, 200);
-      this.pushLog(msg, r.result.success ? 'success' : 'warn');
+      const msg = r.result.message || JSON.stringify(r.result).slice(0, 300);
+      this._pushLogDom(msg, r.result.success ? 'success' : 'warn');
     } else {
-      this.pushLog('调用失败：' + (r && r.error), 'error');
+      this._pushLogDom('调用失败：' + (r && r.error), 'error');
     }
-  },
-  pushLog(text, level) {
-    this.logs.push({ text: '[' + new Date().toLocaleTimeString() + '] ' + text, level: level || 'info' });
-    if (this.logs.length > 200) this.logs.splice(0, this.logs.length - 200);
   },
 };
 
@@ -293,20 +371,33 @@ const panelDef = {
   methods,
   async ready() {
     const vm = this;
-    vm.status = 'stopped';
-    vm.config = {};
-    vm.spineExeExists = true;
-    vm.showGuide = true;
-    vm.guideStep1 = false;
-    vm.guideStep2 = false;
-    vm.guideStep3 = false;
-    vm.aiConfigText = '';
-    vm.copied = false;
-    vm.projects = [];
-    vm.selectedProject = '';
-    vm.toolNames = [];
-    vm.quickTool = '';
-    vm.logs = [];
+    vm.el = vm.shadowRoot || vm.$el || document.getElementById('sm-root');
+    vm._s = {
+      config: {},
+      status: 'stopped',
+      spineExeExists: true,
+      aiConfigText: '',
+      projects: [],
+      selectedProject: '',
+      toolNames: [],
+      quickTool: '',
+    };
+    if (!vm.el) {
+      vm.el = document.createElement('div');
+      vm.el.innerHTML = '<div class="sm-root" style="padding:16px;color:#eee;background:#1e1e1e;height:100%">面板初始化失败（DOM 未找到）</div>';
+    }
+    // 事件绑定
+    vm.el.querySelector('#sm-btn-start').addEventListener('click', () => vm.startServer());
+    vm.el.querySelector('#sm-btn-stop').addEventListener('click', () => vm.stopServer());
+    vm.el.querySelector('#sm-save').addEventListener('click', () => vm.saveConfig());
+    vm.el.querySelector('#sm-scan').addEventListener('click', () => vm.scanProjects());
+    vm.el.querySelector('#sm-browse-spine').addEventListener('click', () => vm.browseSpine());
+    vm.el.querySelector('#sm-browse-ws').addEventListener('click', () => vm.browseWorkspace());
+    vm.el.querySelector('#sm-gen-config').addEventListener('click', () => vm.generateConfig());
+    vm.el.querySelector('#sm-copy-config').addEventListener('click', () => vm.copyConfig());
+    vm.el.querySelector('#sm-info').addEventListener('click', () => vm.getInfo());
+    vm.el.querySelector('#sm-run').addEventListener('click', () => vm.runQuickTool());
+    vm.el.querySelector('#sm-clear-log').addEventListener('click', () => { vm.el.querySelector('#sm-log').innerHTML = ''; });
     await vm.refreshAll();
   },
   close() {

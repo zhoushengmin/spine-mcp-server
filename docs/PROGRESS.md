@@ -563,4 +563,12 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 7.7 KB
 - **重新验证**：移除扩展 → 重新导入 `cocos-extension` → 启用 → **扩展 → Spine MCP Server**（正常显示文本）→ 点击打开面板
 
+### 三次修复（面板重写 + 报错修复，2026-08-23）
+用户反馈：面板能打开但报错 + 界面混乱（Vue 语法原文显示）+ 字色看不清。
+- **报错 1**：`The "path" argument must be of type string. Received an instance of Object` → `panels.default.icon` 用了 `{ font, content }` 对象，而 3.8 中 icon 应为字符串路径 → **移除 icon 字段**
+- **报错 2**：`Message does not exist: spine-mcp-panel - spine:get-cli-config` → panel 调用的 `spine:get-cli-config`、`spine:list-tools` 未在 `contributions.messages` 注册 → **补全注册**
+- **界面混乱**：Cocos 面板的 Vue 需手动 `new window.Vue({ el: this.shadowRoot })` 才编译，`Editor.Panel.define` 不自动编译 → template 里 `{{ }}`/`v-if`/`@click` 显示为原文 → **重写为纯 HTML/CSS/JS（原生 DOM + addEventListener）**，彻底不依赖 Vue
+- **重新设计**：深色高对比面板（背景 #1e1e1e、文字 #e8e8e8），所有配色对比度 ≥ 7.0（超 WCAG AA 4.5），亮/暗主题下均清晰；三步引导改为 ①→✅ 状态点
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 9.0 KB；模板无 Vue 残留、全部事件 ID 匹配、关键方法齐备
+
 

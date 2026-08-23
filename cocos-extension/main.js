@@ -22,25 +22,24 @@ let mcpProcess = null;
 let mcpStatus = 'stopped'; // stopped | starting | running | error
 
 // ---------------- 配置 ----------------
-function loadConfig() {
+// ⚠️ Editor.Profile.getConfig/setConfig 为 async（返回 Promise），必须 await；
+//    第一个参数必须是扩展名 packageJSON.name（spine-mcp-panel）。
+async function loadConfig() {
   const cfg = { ...DEFAULT_CONFIG };
-  let hasSavedSpine = false;
   try {
-    const saved = Editor.Profile.getConfig('spine-mcp', 'config') || {};
+    const saved = (await Editor.Profile.getConfig('spine-mcp-panel', 'config')) || {};
     Object.assign(cfg, saved);
-    // 用户是否显式保存过 spineExe（非空）
-    hasSavedSpine = typeof saved.spineExe === 'string' && saved.spineExe.length > 0;
   } catch (e) {
     // 容错
   }
-  // 环境变量仅作兜底：用户已显式保存 spineExe 时以用户配置优先
+  // 环境变量仅作兜底：用户未保存非空 spineExe 时使用
   // （避免系统 SPINE_EXE 环境变量覆盖面板手动选择的路径）
-  if (!hasSavedSpine && process.env.SPINE_EXE) cfg.spineExe = process.env.SPINE_EXE;
+  if (!cfg.spineExe && process.env.SPINE_EXE) cfg.spineExe = process.env.SPINE_EXE;
   return cfg;
 }
 
-function saveConfig(cfg) {
-  Editor.Profile.setConfig('spine-mcp', 'config', cfg);
+async function saveConfig(cfg) {
+  await Editor.Profile.setConfig('spine-mcp-panel', 'config', cfg);
 }
 
 function resolveServerPath(serverPath) {
@@ -69,9 +68,9 @@ function resolveNode() {
 }
 
 // ---------------- 服务生命周期 ----------------
-function startServer() {
+async function startServer() {
   if (mcpProcess) return { ok: true, status: 'running' };
-  const cfg = loadConfig();
+  const cfg = await loadConfig();
   const serverPath = resolveServerPath(cfg.serverPath);
   const entry = path.join(serverPath, 'dist', 'index.js');
   if (!fs.existsSync(entry)) {
@@ -123,7 +122,7 @@ function requireTools(serverPath) {
 }
 
 async function runTool(toolName, args) {
-  const cfg = loadConfig();
+  const cfg = await loadConfig();
   const serverPath = resolveServerPath(cfg.serverPath);
   const tools = requireTools(serverPath);
   const tool = tools.allTools.find((t) => t.name === toolName);
@@ -139,12 +138,12 @@ async function runTool(toolName, args) {
 }
 
 // ---------------- 扫描 ----------------
-function listProjects(workspace) {
-  const dir = workspace || loadConfig().workspace;
+async function listProjects(workspace) {
+  const dir = workspace || (await loadConfig()).workspace;
   if (!dir || !fs.existsSync(dir)) {
     return { ok: false, error: `工作区不存在：${dir}`, projects: [] };
   }
-  const scanner = require(path.join(resolveServerPath(loadConfig().serverPath), 'dist', 'spine', 'asset-scanner.js'));
+  const scanner = require(path.join(resolveServerPath((await loadConfig()).serverPath), 'dist', 'spine', 'asset-scanner.js'));
   try {
     return { ok: true, projects: scanner.scanSpineProjects(dir, { recursive: true, limit: 300 }) };
   } catch (e) {
@@ -168,12 +167,12 @@ const methods = {
   'spine:stop': async () => stopServer(),
   'spine:status': async () => ({ status: mcpStatus, pid: mcpProcess ? mcpProcess.pid : null }),
   'spine:get-config': async () => {
-    const cfg = loadConfig();
+    const cfg = await loadConfig();
     return { ok: true, config: cfg, spineExeExists: !!resolveSpineExe(cfg.spineExe) };
   },
   'spine:set-config': async (cfg) => {
-    const merged = { ...loadConfig(), ...(cfg || {}) };
-    saveConfig(merged);
+    const merged = { ...(await loadConfig()), ...(cfg || {}) };
+    await saveConfig(merged);
     return { ok: true, config: merged };
   },
   'spine:list-projects': async (workspace) => listProjects(workspace),
@@ -181,7 +180,7 @@ const methods = {
   'spine:run-tool': async ({ tool, args }) => runTool(tool, args),
   'spine:list-tools': async () => {
     try {
-      const serverPath = resolveServerPath(loadConfig().serverPath);
+      const serverPath = resolveServerPath((await loadConfig()).serverPath);
       const tools = requireTools(serverPath);
       return { ok: true, tools: tools.allTools.map((t) => ({ name: t.name, description: t.description })) };
     } catch (e) {
@@ -190,7 +189,7 @@ const methods = {
   },
   'spine:get-cli-config': async () => {
     // 生成 AI 客户端配置片段
-    const cfg = loadConfig();
+    const cfg = await loadConfig();
     const serverPath = resolveServerPath(cfg.serverPath);
     return {
       ok: true,

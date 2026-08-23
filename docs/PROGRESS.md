@@ -591,4 +591,10 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **修复**：`loadConfig()` 改为「用户已显式保存非空 spineExe 时优先，环境变量仅兜底」。
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 10.1 KB。
 
+### 七次修复（Profile API 异步调用，2026-08-23）
+用户反馈：环境变量修复后仍无效——浏览有"已选择"日志但输入框不更新。
+- **根因（真正）**：`Editor.Profile.getConfig/setConfig` 在 Cocos 3.8 中是 **async（返回 Promise）**，`main.js` 用同步方式 `Editor.Profile.getConfig('spine-mcp', 'config')` 未 await → 拿到的永远是 Promise 对象而非保存的配置；且 profile 名写成了 `spine-mcp`（应为扩展名 `spine-mcp-panel`）→ 保存的配置永远读不回来，输入框被环境变量兜底值覆盖。
+- **修复**：`loadConfig()/saveConfig()` 改 async + await，profile 名改为 `spine-mcp-panel`；`startServer/runTool/listProjects` 及全部 messages 方法同步加 await。
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 10.2 KB。
+
 

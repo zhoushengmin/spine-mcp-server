@@ -130,9 +130,11 @@ export function parseAtlas(text: string): ParsedAtlas {
   return { pages, regions, raw: text };
 }
 
-/** 查找 region（支持 文件名路径 与 region 名匹配） */
+/** 查找 region（支持路径、文件名、region 子目录名匹配） */
 export function findRegion(atlas: ParsedAtlas, name: string): AtlasRegion | undefined {
   const base = name.replace(/\\/g, "/");
   const fileName = base.split("/").pop();
-  return atlas.regions.find((r) => r.name === name || r.name === fileName || r.name === base);
+  return atlas.regions.find(
+    (r) => r.name === name || r.name === fileName || r.name === base || r.name.split("/").pop() === fileName
+  );
 }

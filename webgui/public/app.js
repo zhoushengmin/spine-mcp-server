@@ -66,6 +66,31 @@ createApp({
       const res = await fetch(path, opts);
       return res.json();
     },
+    /** 一键填入 hero 示例路径（按真实存在素材预填） */
+    fillExample() {
+      const hero = 'D:/cocos/SpinePro3.8.75/examples/hero';
+      this.workspace = 'D:/cocos/SpinePro3.8.75/examples';
+      this.split.atlasPath = hero + '/export/hero.atlas';
+      this.split.imagePath = hero + '/export/hero.png';
+      this.split.outputDir = 'D:/cocos/spine-mcp-server/out/web-split';
+      this.bonesProject = hero + '/hero-pro.spine';
+      this.bonesAnim = 'idle';
+      this.previewProject = hero + '/hero-pro.spine';
+      this.previewAnim = 'idle';
+      this.expSource = hero + '/hero-pro.spine';
+      this.expTarget = 'D:/cocos/spine-mcp-server/out/web-export';
+      this._flash('已填入 hero 示例路径，可按顶部 5 步操作（先扫描项目）');
+    },
+    _flash(msg) {
+      const old = document.getElementById('wg-toast');
+      if (old) old.remove();
+      const d = document.createElement('div');
+      d.id = 'wg-toast';
+      d.className = 'wg-toast';
+      d.textContent = msg;
+      document.body.appendChild(d);
+      setTimeout(() => d.remove(), 3000);
+    },
     async refreshStatus() {
       try {
         const r = await this.api('/api/status');

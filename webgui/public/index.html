@@ -21,6 +21,20 @@
       </div>
     </header>
 
+    <!-- 使用引导 -->
+    <div class="wg-guide">
+      <div class="wg-guide-title">🪄 快速上手 — 点「填入示例」自动预填 hero 示例路径，再按下面 5 步体验</div>
+      <ol class="wg-guide-list">
+        <li><b>项目</b>：填工作区目录 → 点「扫描」→ 点选项目 → 「查看信息」（看到骨骼/插槽/动画数）</li>
+        <li><b>拆图</b>：填 atlas + png → 选模式 → 「拆分」→ 下方显示部件图</li>
+        <li><b>骨骼</b>：选项目 → 「加载骨骼」→ 点选骨骼 → 填动画/帧/旋转角 → 「写入关键帧」</li>
+        <li><b>预览</b>：选项目 + 动画 → 拖时间轴 → 「渲染」出图</li>
+        <li><b>导出</b>：填源项目 + Cocos 目标目录 → 「复制 .spine + 图集」</li>
+      </ol>
+      <button class="wg-btn primary" @click="fillExample">🪄 填入示例（hero）</button>
+      <span class="wg-guide-note">提示：各页签需先启动服务器（npm run web），右上角显示"服务正常 · 55 工具"。</span>
+    </div>
+
     <!-- 项目页 -->
     <section v-show="tab === 'projects'" class="wg-body">
       <div class="wg-card">

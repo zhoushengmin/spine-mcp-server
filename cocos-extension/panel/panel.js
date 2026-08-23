@@ -368,10 +368,27 @@ const methods = {
 const panelDef = {
   template,
   style,
+  // 官方 DOM 快捷选择器：渲染后由编辑器挂到 this.$（基于 document.querySelector）
+  $: {
+    root: '#sm-root',
+    btnStart: '#sm-btn-start',
+    btnStop: '#sm-btn-stop',
+    btnSave: '#sm-save',
+    btnScan: '#sm-scan',
+    btnBrowseSpine: '#sm-browse-spine',
+    btnBrowseWs: '#sm-browse-ws',
+    btnGenConfig: '#sm-gen-config',
+    btnCopyConfig: '#sm-copy-config',
+    btnInfo: '#sm-info',
+    btnRun: '#sm-run',
+    btnClearLog: '#sm-clear-log',
+    log: '#sm-log',
+  },
   methods,
   async ready() {
     const vm = this;
-    vm.el = vm.shadowRoot || vm.$el || document.getElementById('sm-root');
+    // 优先使用官方 $ 选择器；兜底尝试 document 查找
+    vm.el = vm.$.root || (typeof document !== 'undefined' && document.getElementById('sm-root'));
     vm._s = {
       config: {},
       status: 'stopped',
@@ -383,21 +400,24 @@ const panelDef = {
       quickTool: '',
     };
     if (!vm.el) {
+      // 极端兜底：构建最小 DOM
       vm.el = document.createElement('div');
       vm.el.innerHTML = '<div class="sm-root" style="padding:16px;color:#eee;background:#1e1e1e;height:100%">面板初始化失败（DOM 未找到）</div>';
+      return;
     }
+    const $ = vm.el.querySelector.bind(vm.el);
     // 事件绑定
-    vm.el.querySelector('#sm-btn-start').addEventListener('click', () => vm.startServer());
-    vm.el.querySelector('#sm-btn-stop').addEventListener('click', () => vm.stopServer());
-    vm.el.querySelector('#sm-save').addEventListener('click', () => vm.saveConfig());
-    vm.el.querySelector('#sm-scan').addEventListener('click', () => vm.scanProjects());
-    vm.el.querySelector('#sm-browse-spine').addEventListener('click', () => vm.browseSpine());
-    vm.el.querySelector('#sm-browse-ws').addEventListener('click', () => vm.browseWorkspace());
-    vm.el.querySelector('#sm-gen-config').addEventListener('click', () => vm.generateConfig());
-    vm.el.querySelector('#sm-copy-config').addEventListener('click', () => vm.copyConfig());
-    vm.el.querySelector('#sm-info').addEventListener('click', () => vm.getInfo());
-    vm.el.querySelector('#sm-run').addEventListener('click', () => vm.runQuickTool());
-    vm.el.querySelector('#sm-clear-log').addEventListener('click', () => { vm.el.querySelector('#sm-log').innerHTML = ''; });
+    (vm.$.btnStart || $('#sm-btn-start')).addEventListener('click', () => vm.startServer());
+    (vm.$.btnStop || $('#sm-btn-stop')).addEventListener('click', () => vm.stopServer());
+    (vm.$.btnSave || $('#sm-save')).addEventListener('click', () => vm.saveConfig());
+    (vm.$.btnScan || $('#sm-scan')).addEventListener('click', () => vm.scanProjects());
+    (vm.$.btnBrowseSpine || $('#sm-browse-spine')).addEventListener('click', () => vm.browseSpine());
+    (vm.$.btnBrowseWs || $('#sm-browse-ws')).addEventListener('click', () => vm.browseWorkspace());
+    (vm.$.btnGenConfig || $('#sm-gen-config')).addEventListener('click', () => vm.generateConfig());
+    (vm.$.btnCopyConfig || $('#sm-copy-config')).addEventListener('click', () => vm.copyConfig());
+    (vm.$.btnInfo || $('#sm-info')).addEventListener('click', () => vm.getInfo());
+    (vm.$.btnRun || $('#sm-run')).addEventListener('click', () => vm.runQuickTool());
+    (vm.$.btnClearLog || $('#sm-clear-log')).addEventListener('click', () => { $('#sm-log').innerHTML = ''; });
     await vm.refreshAll();
   },
   close() {

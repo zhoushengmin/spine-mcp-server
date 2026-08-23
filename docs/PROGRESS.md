@@ -571,4 +571,10 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **重新设计**：深色高对比面板（背景 #1e1e1e、文字 #e8e8e8），所有配色对比度 ≥ 7.0（超 WCAG AA 4.5），亮/暗主题下均清晰；三步引导改为 ①→✅ 状态点
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 9.0 KB；模板无 Vue 残留、全部事件 ID 匹配、关键方法齐备
 
+### 四次修复（面板 DOM 访问方式，2026-08-23）
+用户反馈：`Cannot read properties of null (reading 'addEventListener')`，所有按钮无点击反馈。
+- **根因**：`ready()` 中手动用 `vm.shadowRoot || vm.$el` 猜 DOM 根是错误的——Cocos 3.8 官方面板机制是**通过 `$` 选择器**（渲染后编辑器自动 `document.querySelector` 并挂到 `this.$`）。`this.shadowRoot` 不含 template 渲染内容 → `querySelector('#sm-btn-start')` 返回 null → 首个 addEventListener 抛错，后续绑定全未执行。
+- **修复**：`panelDef` 增加 `$` 选择器（root + 全部交互按钮）；`ready()` 用 `this.$.root` 获取根元素，事件绑定改用 `this.$.btnXxx`（带 `#id` querySelector 兜底）。
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 9.3 KB。
+
 

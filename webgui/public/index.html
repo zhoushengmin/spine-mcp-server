@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spine MCP Web GUI</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 顶栏 -->
+    <header class="wg-header">
+      <div class="wg-brand">🦴 Spine MCP Web GUI</div>
+      <nav class="wg-tabs">
+        <button v-for="t in tabs" :key="t.id" class="wg-tab" :class="{ active: tab === t.id }" @click="tab = t.id">{{ t.label }}</button>
+      </nav>
+      <div class="wg-status">
+        <span class="wg-dot" :class="serverOk ? 'on' : 'off'"></span>
+        {{ serverOk ? '服务正常 · ' + toolCount + ' 工具' : '服务异常' }}
+        <span class="wg-spine">{{ spineExe || '' }}</span>
+      </div>
+    </header>
+
+    <!-- 项目页 -->
+    <section v-show="tab === 'projects'" class="wg-body">
+      <div class="wg-card">
+        <h3>📦 Spine 项目</h3>
+        <div class="wg-row">
+          <input v-model="workspace" placeholder="工作区目录（含 .spine 文件）" />
+          <button class="wg-btn primary" @click="scanProjects">扫描</button>
+        </div>
+        <div class="wg-grid">
+          <div v-for="p in projects" :key="p.path" class="wg-proj" :class="{ sel: selectedProject === p.path }" @click="selectedProject = p.path">
+            <div class="wg-proj-name">{{ p.name }}</div>
+            <div class="wg-proj-path">{{ p.path }}</div>
+            <div class="wg-proj-meta">{{ (p.size/1024).toFixed(1) }} KB</div>
+          </div>
+          <div v-if="!projects.length" class="wg-empty">扫描后显示项目</div>
+        </div>
+      </div>
+      <div class="wg-card" v-if="selectedProject">
+        <h3>项目信息</h3>
+        <div class="wg-row">
+          <input :value="selectedProject" readonly />
+          <button class="wg-btn" @click="loadInfo">查看信息</button>
+        </div>
+        <div v-if="info" class="wg-info">
+          <div class="wg-stat" v-for="(v,k) in infoStats" :key="k"><b>{{ v }}</b>{{ k }}</div>
+          <div v-if="animations.length">
+            <h4>动画</h4>
+            <select v-model="previewAnim" @change="animChanged">
+              <option v-for="a in animations" :key="a.name" :value="a.name">{{ a.name }} ({{ a.duration }}s)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 拆图页 -->
+    <section v-show="tab === 'split'" class="wg-body">
+      <div class="wg-card">
+        <h3>✂️ 图集拆分</h3>
+        <div class="wg-field"><label>atlas</label><input v-model="split.atlasPath" placeholder="D:/.../export/goblins.atlas" /></div>
+        <div class="wg-field"><label>png</label><input v-model="split.imagePath" placeholder="D:/.../export/goblins.png" /></div>
+        <div class="wg-field"><label>输出</label><input v-model="split.outputDir" placeholder="输出目录" /></div>
+        <div class="wg-row">
+          <label>模式</label>
+          <select v-model="split.mode">
+            <option value="region">region（按图集区域）</option>
+            <option value="split">split（连通域拆分）</option>
+          </select>
+          <button class="wg-btn primary" :disabled="busy" @click="runSplit">拆分</button>
+        </div>
+        <div class="wg-error" v-if="splitError">{{ splitError }}</div>
+      </div>
+      <div class="wg-card" v-if="splitParts.length">
+        <h3>部件（{{ splitParts.length }}）</h3>
+        <div class="wg-parts">
+          <div v-for="p in splitParts" :key="p.name" class="wg-part">
+            <img v-if="p.url" :src="p.url" alt="" />
+            <div class="wg-part-name">{{ p.name }}</div>
+            <div class="wg-part-meta">{{ p.width }}x{{ p.height }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 骨骼页 -->
+    <section v-show="tab === 'bones'" class="wg-body">
+      <div class="wg-card">
+        <h3>🦴 骨骼编辑（control_bone）</h3>
+        <div class="wg-field"><label>项目</label><input v-model="bonesProject" placeholder=".spine 路径（或先在项目页选择）" /></div>
+        <div class="wg-row">
+          <button class="wg-btn" @click="loadBones">加载骨骼</button>
+          <span v-if="bones.length">共 {{ bones.length }} 根</span>
+        </div>
+        <div class="wg-bones">
+          <div v-for="b in bones" :key="b.name" class="wg-bone" :class="{ sel: bonesSel === b.name }" @click="bonesSel = b.name">
+            {{ b.name }} <span class="wg-bone-parent">{{ b.parent || 'root' }}</span>
+          </div>
+        </div>
+        <div class="wg-card-inner" v-if="bonesSel">
+          <div class="wg-field"><label>动画</label><input v-model="bonesAnim" placeholder="如 idle" /></div>
+          <div class="wg-row">
+            <label>帧</label><input type="number" v-model.number="bonesFrame" min="0" class="wg-num" />
+            <label>旋转°</label><input type="number" v-model.number="bonesRotation" class="wg-num" />
+            <button class="wg-btn primary" @click="applyBone">写入关键帧</button>
+          </div>
+        </div>
+        <div class="wg-log-ok" v-if="bonesMsg">{{ bonesMsg }}</div>
+      </div>
+    </section>
+
+    <!-- 预览页 -->
+    <section v-show="tab === 'preview'" class="wg-body">
+      <div class="wg-card">
+        <h3>🎬 动画预览</h3>
+        <div class="wg-field"><label>项目</label><input v-model="previewProject" placeholder=".spine 路径（或从项目页选择）" /></div>
+        <div class="wg-row">
+          <label>动画</label>
+          <select v-model="previewAnim" :disabled="!animations.length">
+            <option v-if="!animations.length" value="">先查看项目信息</option>
+            <option v-for="a in animations" :key="a.name" :value="a.name">{{ a.name }}</option>
+          </select>
+          <label>时间</label>
+          <input type="range" v-model.number="previewTime" min="0" :max="previewMax" step="0.05" class="wg-slider" />
+          <span>{{ previewTime.toFixed(2) }}s</span>
+          <button class="wg-btn primary" @click="renderPreview">渲染</button>
+        </div>
+        <div class="wg-canvas-wrap">
+          <img v-if="previewImg" :src="previewImg" class="wg-canvas" alt="preview" />
+          <div v-else class="wg-empty">设置项目与动画后点击「渲染」</div>
+        </div>
+        <div class="wg-error" v-if="previewError">{{ previewError }}</div>
+      </div>
+    </section>
+
+    <!-- 导出页 -->
+    <section v-show="tab === 'export'" class="wg-body">
+      <div class="wg-card">
+        <h3>📤 导出到 Cocos 项目</h3>
+        <div class="wg-field"><label>源项目</label><input v-model="expSource" placeholder=".spine 路径" /></div>
+        <div class="wg-field"><label>目标目录</label><input v-model="expTarget" placeholder="Cocos 项目 assets/spine 目录" /></div>
+        <div class="wg-row">
+          <button class="wg-btn primary" @click="exportCopy">复制 .spine + 图集</button>
+          <span class="wg-hint">复制源 .spine、同目录 export/*.atlas、*.png</span>
+        </div>
+        <div class="wg-log-ok" v-if="expMsg">{{ expMsg }}</div>
+        <div class="wg-error" v-if="expError">{{ expError }}</div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

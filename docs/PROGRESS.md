@@ -14,7 +14,7 @@
 | Phase 4 | 高级骨骼模块 | ✅ 完成 | 约束 / 网格 / 曲线 / 事件 |
 | Phase 5 | 图片拆分 + 骨骼构建 | ✅ 完成 | split_atlas / build_skeleton / repack_atlas / JS 渲染 |
 | Phase 6 | Cocos 集成 + 面板 UI | ✅ 完成 | cocos-extension 面板 / 安装向导 / .ccx |
-| Phase 7 | Web GUI（可选） | ⬜ 未开始 | 可视化面板 |
+| Phase 7 | Web GUI（可选） | ✅ 完成 | 可视化面板（5 页） |
 | Phase 8 | 测试与文档 | ⬜ 未开始 | 单测 / 集成 / 打包 |
 
 图例：✅ 完成 · 🚧 进行中 · ⬜ 未开始 · ❌ 阻塞
@@ -398,3 +398,48 @@ tests/self-test-mcp.cjs          — MCP 协议级自测（10 断言）
 3. 验证：Spine 路径检测、服务启动状态灯、工作区扫描、AI 配置生成/复制、项目信息查看、快速工具调用
 
 **下一步**：Phase 8 测试与文档（或按需先做 Phase 7 Web GUI）。
+
+---
+
+## Phase 7：Web GUI 可视化面板（已完成）
+
+### 目标
+提供本地 Web 可视化面板（Vue 3 + Node 内置 http，复用 55 个 MCP 工具作为 API），作为 Cocos 扩展面板的补充。
+
+### 任务清单
+
+| # | 任务 | 状态 | 验证结果 |
+|---|------|:----:|---------|
+| 7.1 | Node http 服务器（静态 + /api/*） | ✅ | status/tools/projects/info/tool/preview/export-copy |
+| 7.2 | 拆图页面（split_atlas 可视化 + 部件展示） | ✅ | 41 部件 + /files/ 图片可访问 |
+| 7.3 | 骨骼编辑页面（骨骼树 + control_bone） | ✅ | 加载骨骼 + 写入关键帧 |
+| 7.4 | 动画预览页面（时间轴 + 渲染） | ✅ | hero idle 渲染 7 附件 |
+| 7.5 | 导出页面（复制到 Cocos 项目） | ✅ | 复制 3 文件（spine+atlas+png） |
+| 7.6 | Vue3 前端应用（5 页） | ✅ | 页面/样式/逻辑加载正常 |
+
+### 当前进度明细（2026-08-22 完成 Phase 7）
+
+**新增文件**：webgui/server.js、webgui/public/{index.html, style.css, app.js}
+
+**验证结果（服务器实测）**
+| API | 结果 |
+|-----|:--:|
+| GET /api/status | ✅ 55 工具 |
+| GET /api/projects?dir= | ✅ 扫描 |
+| GET /api/info?project= | ✅ 项目信息 |
+| POST /api/tool（split_atlas） | ✅ 41 部件 + 图片 URL |
+| GET /api/preview（hero idle） | ✅ 512x512 渲染 |
+| POST /api/export-copy | ✅ 3 文件 |
+
+### ⚠️ 自测发现并修复的问题
+1. **工具返回结构访问错误**：映射拆分输出时误用 `plain.result.data.*`（工具返回无 `.result` 包装层），导致部件图片 URL 未生成。已修为 `plain.data.*`。✅
+2. **atlas 自动发现**：hero 项目导出图集名为 `hero.atlas` 而项目名为 `hero-pro.spine`，匹配失败。已改为「递归搜索 + 基础名匹配（去掉 -pro/-ess 后缀）」。✅
+3. **export-copy atlas 匹配**：同样按基础名匹配，goblins-pro 正确复制 goblins.atlas/png。✅
+
+### 使用方式
+```bash
+npm run web          # 启动 http://localhost:3000（或 node webgui/server.js）
+```
+浏览器打开 http://localhost:3000，5 个页签：项目 / 拆图 / 骨骼 / 预览 / 导出。
+
+**下一步**：Phase 8 测试与文档（单测、README、用户手册、演示视频、.ccx 上架）。

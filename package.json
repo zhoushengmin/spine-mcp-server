@@ -14,6 +14,7 @@
     "info": "node dist/index.js info",
     "installer": "node scripts/installer.js",
     "package:ccx": "node scripts/package-ccx.js",
+    "web": "node webgui/server.js",
     "test:p3": "node tests/self-test-tools.cjs",
     "test:p4": "node tests/self-test-p4.cjs",
     "test:p5": "node tests/self-test-p5.cjs",

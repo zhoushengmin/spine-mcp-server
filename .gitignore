@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-ccx/
+webgui/public/preview/
 *.log
 .env
 .env.local

@@ -267,8 +267,7 @@ async function runTool(toolName, args) {
   try {
     tools = requireTools(serverPath);
   } catch (e) {
-    // 本进程加载失败（sharp ABI 不匹配等）→ 回退 MCP 子进程（系统 node 运行）
-    console.error('[spine-mcp] 本进程加载工具失败，回退 MCP 子进程:', e.message);
+    // 本进程无法加载（sharp ABI 不匹配等）→ 静默回退 MCP 子进程（系统 node 运行，sharp 正常）
     return runToolViaMcp(toolName, args);
   }
   const tool = tools.allTools.find((t) => t.name === toolName);

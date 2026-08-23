@@ -597,4 +597,13 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **修复**：`loadConfig()/saveConfig()` 改 async + await，profile 名改为 `spine-mcp-panel`；`startServer/runTool/listProjects` 及全部 messages 方法同步加 await。
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 10.2 KB。
 
+### 八次修复（面板交互体验，2026-08-23）
+用户反馈 4 点：选择失败直接抛技术报错 / AI 配置生成按钮冗余且复制无效 / 查看信息无响应 / 快速工具下拉框空。
+- **选择失败友好提示**：浏览选择统一走 `_pick()`——取消→"已取消选择"、无路径→"未选择任何路径"、异常→"打开选择对话框失败，请重试"（原始错误仅输出控制台，不展示给用户）。
+- **AI 客户端配置**：去掉「生成配置」按钮（配置实时生成）；复制改用 `navigator.clipboard → Editor.Clipboard → execCommand` 多重方案，成功显示按钮"已复制 ✓" + 日志提示。
+- **查看信息**：无项目时明确提示"暂无项目，请配置工作区并刷新"；调用失败显示原因；加 try/catch。
+- **快速工具**：loadTools 失败时日志区显示原因（含"检查 Server 路径与 npm run build"）。
+- 全部消息调用（get-config/status/get-cli-config/list-tools/get-info）补 try/catch + 日志。
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 11.0 KB。
+
 

@@ -6,6 +6,28 @@
  */
 'use strict';
 
+/** 复制文本到剪贴板：navigator.clipboard → Editor.Clipboard → execCommand 兜底 */
+async function copyText(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  if (typeof Editor !== 'undefined' && Editor.Clipboard && typeof Editor.Clipboard.write === 'function') {
+    await Editor.Clipboard.write(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ }
+  document.body.removeChild(ta);
+  if (!ok) throw new Error('execCommand copy failed');
+}
+
 const template = `
 <div id="sm-root" class="sm-root">
   <!-- 顶部状态栏 -->
@@ -64,8 +86,7 @@ const template = `
     <div class="sm-section-title">🤖 AI 客户端配置</div>
     <textarea id="sm-ai-config" class="sm-json" rows="6" readonly></textarea>
     <div class="sm-row">
-      <button id="sm-gen-config" class="sm-btn sm-btn-primary">生成配置</button>
-      <button id="sm-copy-config" class="sm-btn">一键复制</button>
+      <button id="sm-copy-config" class="sm-btn sm-btn-primary">一键复制</button>
     </div>
   </section>
 
@@ -231,11 +252,18 @@ const methods = {
     this._renderAiConfig();
   },
   async loadConfig() {
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-config');
-    if (r && r.ok) {
-      this._s.config = r.config || {};
-      this._s.spineExeExists = r.spineExeExists !== false;
-      this._renderConfig();
+    try {
+      const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-config');
+      if (r && r.ok) {
+        this._s.config = r.config || {};
+        this._s.spineExeExists = r.spineExeExists !== false;
+        this._renderConfig();
+      } else {
+        this._pushLogDom('读取配置失败：' + ((r && r.error) || '未知错误'), 'error');
+      }
+    } catch (e) {
+      console.error('[spine-mcp] get-config 异常:', e);
+      this._pushLogDom('读取配置异常，请查看控制台', 'error');
     }
   },
   async saveConfig() {
@@ -265,46 +293,53 @@ const methods = {
     if (typeof res === 'string') return [res];
     return [];
   },
-  async browseSpine() {
+  // 选择对话框统一处理：返回 [paths] 或 null（null 表示取消/失败，已提示）
+  async _pick(options, cancelMsg) {
     try {
-      const res = await Editor.Dialog.select({ title: '选择 Spine 可执行文件', type: 'file', filters: [{ name: 'Spine', extensions: ['exe', 'bat', 'com'] }] });
+      const res = await Editor.Dialog.select(options);
+      if (res && res.canceled) { this._pushLogDom(cancelMsg || '已取消选择', 'warn'); return null; }
       const paths = this._dialogPaths(res);
-      if (!paths.length) { this._pushLogDom('未选择文件', 'warn'); return; }
-      this.el.querySelector('#sm-spine').value = paths[0];
-      this._pushLogDom('已选择 Spine：' + paths[0], 'info');
-      await this.saveConfig();
+      if (!paths.length) { this._pushLogDom('未选择任何路径，请重试', 'warn'); return null; }
+      return paths;
     } catch (e) {
-      this._pushLogDom('选择失败：' + String(e), 'error');
+      // 原始错误仅输出到扩展控制台，不直接展示给用户
+      console.error('[spine-mcp] Dialog.select 失败:', e);
+      this._pushLogDom('打开选择对话框失败，请重试', 'error');
+      return null;
     }
+  },
+  async browseSpine() {
+    const paths = await this._pick({ title: '选择 Spine 可执行文件', type: 'file', filters: [{ name: 'Spine', extensions: ['exe', 'bat', 'com'] }] });
+    if (!paths) return;
+    this.el.querySelector('#sm-spine').value = paths[0];
+    this._pushLogDom('已选择 Spine：' + paths[0], 'info');
+    await this.saveConfig();
   },
   async browseServer() {
-    try {
-      const res = await Editor.Dialog.select({ title: '选择 spine-mcp-server 目录', type: 'directory' });
-      const paths = this._dialogPaths(res);
-      if (!paths.length) { this._pushLogDom('未选择目录', 'warn'); return; }
-      this.el.querySelector('#sm-server').value = paths[0];
-      this._pushLogDom('已选择 Server：' + paths[0], 'info');
-      await this.saveConfig();
-    } catch (e) {
-      this._pushLogDom('选择失败：' + String(e), 'error');
-    }
+    const paths = await this._pick({ title: '选择 spine-mcp-server 目录', type: 'directory' });
+    if (!paths) return;
+    this.el.querySelector('#sm-server').value = paths[0];
+    this._pushLogDom('已选择 Server：' + paths[0], 'info');
+    await this.saveConfig();
   },
   async browseWorkspace() {
-    try {
-      const res = await Editor.Dialog.select({ title: '选择工作区（扫描 .spine 的目录）', type: 'directory' });
-      const paths = this._dialogPaths(res);
-      if (!paths.length) { this._pushLogDom('未选择目录', 'warn'); return; }
-      this.el.querySelector('#sm-workspace').value = paths[0];
-      this._pushLogDom('已选择工作区：' + paths[0], 'info');
-      await this.saveConfig();
-    } catch (e) {
-      this._pushLogDom('选择失败：' + String(e), 'error');
-    }
+    const paths = await this._pick({ title: '选择工作区（扫描 .spine 的目录）', type: 'directory' });
+    if (!paths) return;
+    this.el.querySelector('#sm-workspace').value = paths[0];
+    this._pushLogDom('已选择工作区：' + paths[0], 'info');
+    await this.saveConfig();
   },
   async refreshStatus() {
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:status');
-    this._s.status = (r && r.status) || 'stopped';
-    this._renderStatus();
+    try {
+      const r = await Editor.Message.request('spine-mcp-panel', 'spine:status');
+      this._s.status = (r && r.status) || 'stopped';
+      this._renderStatus();
+    } catch (e) {
+      console.error('[spine-mcp] status 异常:', e);
+      this._s.status = 'error';
+      this._renderStatus();
+      this._pushLogDom('获取服务状态异常，请查看控制台', 'error');
+    }
   },
   async startServer() {
     const r = await Editor.Message.request('spine-mcp-panel', 'spine:start');
@@ -321,21 +356,35 @@ const methods = {
     await this.refreshStatus();
   },
   async generateConfig() {
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-cli-config');
-    if (r && r.ok && r.config) {
-      this._s.aiConfigText = JSON.stringify(r.config, null, 2);
+    try {
+      const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-cli-config');
+      if (r && r.ok && r.config) {
+        this._s.aiConfigText = JSON.stringify(r.config, null, 2);
+        this._renderAiConfig();
+        return r.config;
+      }
+      this._s.aiConfigText = '';
       this._renderAiConfig();
-      return r.config;
+      this._pushLogDom('生成 AI 配置失败：' + ((r && r.error) || '未知错误'), 'warn');
+      return null;
+    } catch (e) {
+      console.error('[spine-mcp] get-cli-config 异常:', e);
+      this._pushLogDom('生成 AI 配置异常，请查看控制台', 'error');
+      return null;
     }
-    return null;
   },
   async copyConfig() {
     if (!this._s.aiConfigText) await this.generateConfig();
+    const text = this._s.aiConfigText || '';
+    if (!text) { this._pushLogDom('配置为空，请先保存配置后再复制', 'warn'); return; }
     try {
-      await Editor.Clipboard.write(this._s.aiConfigText);
+      await copyText(text);
+      const btn = this.el.querySelector('#sm-copy-config');
+      if (btn) { btn.textContent = '已复制 ✓'; setTimeout(() => { btn.textContent = '一键复制'; }, 2000); }
       this._pushLogDom('配置已复制到剪贴板', 'success');
     } catch (e) {
-      this._pushLogDom('复制失败：' + String(e), 'error');
+      console.error('[spine-mcp] 复制失败:', e);
+      this._pushLogDom('复制失败，请手动选中文本框后 Ctrl+C 复制', 'warn');
     }
   },
   async scanProjects() {
@@ -359,23 +408,40 @@ const methods = {
   },
   async getInfo() {
     if (!this._s.selectedProject) {
-      this._pushLogDom('请先选择项目', 'warn');
+      if (!this._s.projects.length) {
+        this._pushLogDom('暂无项目，请先在「工作区」填写目录并点击「刷新项目」', 'warn');
+      } else {
+        this._pushLogDom('请先在项目列表中点击选中一个项目', 'warn');
+      }
       return;
     }
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-info', this._s.selectedProject);
-    if (r && r.ok && r.result && r.result.data) {
-      const d = r.result.data;
-      this._pushLogDom(`[${d.skeletonName || '骨架'}] ${(d.bones || []).length} 骨骼 / ${(d.slots || []).length} 插槽 / ${(d.skins || []).length} 皮肤 / ${(d.animations || []).length} 动画`, 'success');
-    } else {
-      this._pushLogDom('读取信息失败：' + ((r && r.result && r.result.message) || '未知'), 'error');
+    try {
+      const r = await Editor.Message.request('spine-mcp-panel', 'spine:get-info', this._s.selectedProject);
+      if (r && r.ok && r.result && r.result.data) {
+        const d = r.result.data;
+        this._pushLogDom(`[${d.skeletonName || '骨架'}] ${(d.bones || []).length} 骨骼 / ${(d.slots || []).length} 插槽 / ${(d.skins || []).length} 皮肤 / ${(d.animations || []).length} 动画`, 'success');
+      } else {
+        this._pushLogDom('读取信息失败：' + ((r && r.result && r.result.message) || (r && r.error) || '未知'), 'error');
+      }
+    } catch (e) {
+      console.error('[spine-mcp] get-info 异常:', e);
+      this._pushLogDom('读取信息异常，请查看控制台', 'error');
     }
   },
   async loadTools() {
-    const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-tools');
-    if (r && r.ok) {
-      this._s.toolNames = (r.tools || []).map((t) => t.name);
-      this._s.quickTool = this._s.toolNames[0] || '';
-      this._renderTools();
+    try {
+      const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-tools');
+      if (r && r.ok) {
+        this._s.toolNames = (r.tools || []).map((t) => t.name);
+        this._s.quickTool = this._s.toolNames[0] || '';
+        this._renderTools();
+        if (!this._s.toolNames.length) this._pushLogDom('未获取到工具列表（请检查 Server 路径与 npm run build）', 'warn');
+      } else {
+        this._pushLogDom('加载工具失败：' + ((r && r.error) || '未知错误'), 'error');
+      }
+    } catch (e) {
+      console.error('[spine-mcp] list-tools 异常:', e);
+      this._pushLogDom('加载工具异常，请查看控制台', 'error');
     }
   },
   async runQuickTool() {
@@ -411,7 +477,6 @@ const panelDef = {
     btnBrowseSpine: '#sm-browse-spine',
     btnBrowseServer: '#sm-browse-server',
     btnBrowseWs: '#sm-browse-ws',
-    btnGenConfig: '#sm-gen-config',
     btnCopyConfig: '#sm-copy-config',
     btnInfo: '#sm-info',
     btnRun: '#sm-run',
@@ -448,7 +513,6 @@ const panelDef = {
     (vm.$.btnBrowseSpine || $('#sm-browse-spine')).addEventListener('click', () => vm.browseSpine());
     (vm.$.btnBrowseServer || $('#sm-browse-server')).addEventListener('click', () => vm.browseServer());
     (vm.$.btnBrowseWs || $('#sm-browse-ws')).addEventListener('click', () => vm.browseWorkspace());
-    (vm.$.btnGenConfig || $('#sm-gen-config')).addEventListener('click', () => vm.generateConfig());
     (vm.$.btnCopyConfig || $('#sm-copy-config')).addEventListener('click', () => vm.copyConfig());
     (vm.$.btnInfo || $('#sm-info')).addEventListener('click', () => vm.getInfo());
     (vm.$.btnRun || $('#sm-run')).addEventListener('click', () => vm.runQuickTool());

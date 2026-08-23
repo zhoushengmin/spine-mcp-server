@@ -23,7 +23,7 @@
     "test:ext": "node tests/self-test-extension.cjs",
     "test:unit": "node --test tests/unit-tests.mjs",
     "test:all": "node --test tests/unit-tests.mjs && node tests/self-test-tools.cjs && node tests/self-test-p4.cjs && node tests/self-test-p5.cjs && node tests/self-test-render.cjs && node tests/self-test-mcp.cjs && node tests/self-test-extension.cjs",
-    "clean": "rm -rf dist"
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "license": "MIT",
   "dependencies": {

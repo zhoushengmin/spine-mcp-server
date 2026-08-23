@@ -113,8 +113,7 @@ export async function renderRuntimeFrame(opts: RuntimeFrameOptions): Promise<Run
   const H = opts.height || 512;
   const c = canvas.createCanvas(W, H);
   const ctx = c.getContext("2d");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, W, H);
+  // 保持透明背景（与自研渲染器一致，便于游戏内叠加/合成）
   const bw = Math.max(maxX - minX, 1);
   const bh = Math.max(maxY - minY, 1);
   const scale = Math.min((W * 0.8) / bw, (H * 0.8) / bh);

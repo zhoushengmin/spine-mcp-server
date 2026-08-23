@@ -101,8 +101,6 @@ npm run test:unit    # 单元测试（node:test）
 
 - [完整规格书 FINAL_SPEC.md](docs/FINAL_SPEC.md)
 - [用户手册 USER_MANUAL.md](docs/USER_MANUAL.md)
-- [进度报告 PROGRESS.md](docs/PROGRESS.md)
-- [演示脚本 DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
 
 ## 🗂 项目结构 / Structure
 

@@ -17,7 +17,7 @@
 - 操作约束（IK / 变换 / 路径）与网格（FFD 变形）
 - 图集拆分（立绘拆部件）、自动绑骨、图集重打包
 - JS 运行时渲染动画预览帧
-- 通过 Cocos Creator 扩展面板 / Web GUI 可视化操作
+- 通过 Cocos Creator 扩展面板一键配置 / 启停服务 / 生成 AI 客户端配置
 
 ## ✨ 特性 / Features
 
@@ -27,7 +27,6 @@
 | Round-Trip 修改 | 导出 JSON → 修改 → 原地导入，**自动备份**（`.bak`） |
 | 版本兼容 | 锁定 Spine 3.8.75，非 3.8.75 友好提示 |
 | Cocos 扩展 | Cocos Creator 3.8+ 可视化面板 + `.ccx` 打包 |
-| Web GUI | 本地浏览器面板（项目/拆图/骨骼/预览/导出 5 页） |
 | 安装向导 | 一键检测环境 + 写入配置 |
 
 ## 🔧 环境要求 / Requirements
@@ -86,16 +85,8 @@ node dist/index.js info "D:/cocos/SpinePro3.8.75/examples/hero/hero-pro.spine"
 `cocos-extension/` 提供 Cocos Creator 3.8+ 面板：
 
 - 安装：扩展管理器 → 本地扩展 → 添加 `cocos-extension` 目录（或 `npm run package:ccx` 生成 `.ccx` 导入）
-- 功能：启动 MCP 服务 / 扫描项目 / 生成 AI 配置 / 快速工具
+- 功能：启动 MCP 服务 / 扫描项目 / 生成 AI 配置 / 服务状态
 - 详见 [docs/cocos-extension-README.md](docs/cocos-extension-README.md)
-
-## 🌐 Web GUI
-
-```bash
-npm run web          # 打开 http://localhost:3000
-```
-
-5 个页面：**项目 / 拆图 / 骨骼 / 预览 / 导出**（Vue 3 + Node http，复用 55 工具）。
 
 ## 🧪 测试 / Tests
 
@@ -122,7 +113,6 @@ npm run test:unit    # 单元测试（node:test）
 │   ├── tools/            # 55 个工具（registry.ts 注册）
 │   └── utils/            # 配置 / 日志 / 错误码 / 文件工具
 ├── cocos-extension/      # Cocos Creator 扩展（面板）
-├── webgui/               # Web GUI（Vue 3 + Node http）
 ├── scripts/              # 安装向导 / .ccx 打包
 ├── tests/                # 全部测试套件
 └── docs/                 # 规格书 / 手册 / 进度

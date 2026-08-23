@@ -41,7 +41,7 @@
 </ul>
 <h2>2. 系统要求</h2>
 </ul>
-<table><tr><th>组件</th><th>要求</th></tr><tr><td>操作系统</td><td>Windows 10/11（实测）</td></tr><tr><td>Node.js</td><td>≥ 20（推荐 22 LTS）</td></tr><tr><td>Spine</td><td><strong>3.8.75 Professional</strong>（<code>Spine.com</code> 命令行）</td></tr><tr><td>可选</td><td>Cocos Creator 3.8+（扩展面板）；浏览器（Web GUI）</td></tr></table>
+<table><tr><th>组件</th><th>要求</th></tr><tr><td>操作系统</td><td>Windows 10/11（实测）</td></tr><tr><td>Node.js</td><td>≥ 20（推荐 22 LTS）</td></tr><tr><td>Spine</td><td><strong>3.8.75 Professional</strong>（<code>Spine.com</code> 命令行）</td></tr><tr><td>可选</td><td>Cocos Creator 3.8+（扩展面板）</td></tr></table>
 </ul>
 <p>> 本服务针对 Spine 3.8.75 优化。打开其他版本项目时会给出兼容性提示，但不阻止操作。</p>
 </ul>
@@ -192,27 +192,21 @@ LOG_LEVEL=info</code></pre>
 </ul>
 <h2>15. Cocos Creator 扩展</h2>
 </ul>
-<p>安装 <code>cocos-extension</code>（本地扩展或 <code>.ccx</code>），面板提供：服务启停、项目扫描、AI 配置生成、快速工具。详见 <code>docs/cocos-extension-README.md</code>。</p>
+<p>安装 <code>cocos-extension</code>（本地扩展或 <code>.ccx</code>），面板提供：服务启停、项目扫描、AI 配置生成、服务状态。详见 <code>docs/cocos-extension-README.md</code>。</p>
 </ul>
-<h2>16. Web GUI</h2>
-</ul>
-<pre><code>npm run web    # http://localhost:3000</code></pre>
-</ul>
-<p>页面：<strong>项目</strong>（扫描/信息）、<strong>拆图</strong>（拆分/预览部件）、<strong>骨骼</strong>（control_bone）、<strong>预览</strong>（时间轴渲染）、<strong>导出</strong>（复制到 Cocos 项目）。</p>
-</ul>
-<h2>17. 备份与回滚</h2>
+<h2>16. 备份与回滚</h2>
 </ul>
 <li>每次修改自动生成 <code>xxx.spine.YYYY-MM-DDTHH-MM-SS.bak</code></li>
 <li><code>spine_rollback</code> 列出备份，<code>rollback</code> 参数可恢复指定备份</li>
 <li>建议修改前先复制项目副本</li>
 </ul>
-<h2>18. 版本兼容性</h2>
+<h2>17. 版本兼容性</h2>
 </ul>
 <li>目标：Spine 3.8.75</li>
 <li>3.8.55 等旧版：尽力兼容 + WARNING 提示</li>
 <li>4.x：JSON 格式差异较大，可能失败，建议降级至 3.8.75</li>
 </ul>
-<h2>19. 常见问题（FAQ）</h2>
+<h2>18. 常见问题（FAQ）</h2>
 </ul>
 <p><strong>Q1: MCP 显示 No tools yet？</strong></p>
 <p>A: 删除配置 → 重启客户端 → 重新添加。若仍失败，检查 <code>node dist/index.js mcp</code> 能否在命令行单独运行。</p>
@@ -229,13 +223,13 @@ LOG_LEVEL=info</code></pre>
 <p><strong>Q5: 渲染预览空白？</strong></p>
 <p>A: 确认已导出图集，且 atlas/png 与项目匹配（名称或子目录匹配）。</p>
 </ul>
-<h2>20. 安全与注意事项</h2>
+<h2>19. 安全与注意事项</h2>
 </ul>
 <li>本服务在<strong>本机</strong>运行，工具可读写本地 .spine 文件，请勿在不可信环境暴露</li>
 <li>修改类操作会自动备份，但重要项目仍建议版本管理（Git）</li>
 <li>Spine 编辑器与 MCP 同时打开同一项目时，避免两边同时保存造成覆盖</li>
 </ul>
-<h2>21. 升级与维护</h2>
+<h2>20. 升级与维护</h2>
 </ul>
 <li>每次改动请 <code>npm run build</code> 后再接入客户端</li>
 <li>更新后刷新 AI 客户端 MCP 连接，重启进程生效</li>

@@ -25,7 +25,7 @@ Spine MCP Server 是一个把 Spine 3.8.75 Professional 编辑器能力封装为
 | 操作系统 | Windows 10/11（实测） |
 | Node.js | ≥ 20（推荐 22 LTS） |
 | Spine | **3.8.75 Professional**（`Spine.com` 命令行） |
-| 可选 | Cocos Creator 3.8+（扩展面板）；浏览器（Web GUI） |
+| 可选 | Cocos Creator 3.8+（扩展面板） |
 
 > 本服务针对 Spine 3.8.75 优化。打开其他版本项目时会给出兼容性提示，但不阻止操作。
 
@@ -223,29 +223,21 @@ AI 调用 `spine_get_project_info`，返回骨骼树、插槽、皮肤、动画�
 
 ## 15. Cocos Creator 扩展
 
-安装 `cocos-extension`（本地扩展或 `.ccx`），面板提供：服务启停、项目扫描、AI 配置生成、快速工具。详见 `docs/cocos-extension-README.md`。
+安装 `cocos-extension`（本地扩展或 `.ccx`），面板提供：服务启停、项目扫描、AI 配置生成、服务状态。详见 `docs/cocos-extension-README.md`。
 
-## 16. Web GUI
-
-```bash
-npm run web    # http://localhost:3000
-```
-
-页面：**项目**（扫描/信息）、**拆图**（拆分/预览部件）、**骨骼**（control_bone）、**预览**（时间轴渲染）、**导出**（复制到 Cocos 项目）。
-
-## 17. 备份与回滚
+## 16. 备份与回滚
 
 - 每次修改自动生成 `xxx.spine.YYYY-MM-DDTHH-MM-SS.bak`
 - `spine_rollback` 列出备份，`rollback` 参数可恢复指定备份
 - 建议修改前先复制项目副本
 
-## 18. 版本兼容性
+## 17. 版本兼容性
 
 - 目标：Spine 3.8.75
 - 3.8.55 等旧版：尽力兼容 + WARNING 提示
 - 4.x：JSON 格式差异较大，可能失败，建议降级至 3.8.75
 
-## 19. 常见问题（FAQ）
+## 18. 常见问题（FAQ）
 
 **Q1: MCP 显示 No tools yet？**
 A: 删除配置 → 重启客户端 → 重新添加。若仍失败，检查 `node dist/index.js mcp` 能否在命令行单独运行。
@@ -262,13 +254,13 @@ A: 用 mode=split 分离贴合部件；调节 alphaThreshold/minSize。
 **Q5: 渲染预览空白？**
 A: 确认已导出图集，且 atlas/png 与项目匹配（名称或子目录匹配）。
 
-## 20. 安全与注意事项
+## 19. 安全与注意事项
 
 - 本服务在**本机**运行，工具可读写本地 .spine 文件，请勿在不可信环境暴露
 - 修改类操作会自动备份，但重要项目仍建议版本管理（Git）
 - Spine 编辑器与 MCP 同时打开同一项目时，避免两边同时保存造成覆盖
 
-## 21. 升级与维护
+## 20. 升级与维护
 
 - 每次改动请 `npm run build` 后再接入客户端
 - 更新后刷新 AI 客户端 MCP 连接，重启进程生效

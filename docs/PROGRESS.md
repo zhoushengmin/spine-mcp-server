@@ -14,7 +14,7 @@
 | Phase 4 | 高级骨骼模块 | ✅ 完成 | 约束 / 网格 / 曲线 / 事件 |
 | Phase 5 | 图片拆分 + 骨骼构建 | ✅ 完成 | split_atlas / build_skeleton / repack_atlas / JS 渲染 |
 | Phase 6 | Cocos 集成 + 面板 UI | ✅ 完成 | cocos-extension 面板 / 安装向导 / .ccx |
-| Phase 7 | Web GUI（可选） | ✅ 完成 | 可视化面板（5 页） |
+| Phase 7 | Web GUI（可选） | ✅ 完成后移除 | 可视化面板（5 页），用户确认按需移除 |
 | Phase 8 | 测试与文档 | ✅ 完成 | 单元测试 / README / 用户手册 / 演示脚本 / .ccx |
 
 图例：✅ 完成 · 🚧 进行中 · ⬜ 未开始 · ❌ 阻塞
@@ -635,5 +635,13 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - 面板保留：基本配置、服务启停、AI 配置复制、项目列表 + 查看信息、操作日志
 - 更新扩展自测（移除 runQuickTool 断言）
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 13.4 KB。
+
+### 十二次调整（移除 Web GUI，2026-08-23）
+用户确认最终目标：只需 MCP + AI 客户端直接操作 Spine，Web GUI 按需移除。
+- 删除 `webgui/` 目录（server.js + public/{index.html, app.js, style.css, preview}）
+- 移除 `package.json` 的 `web` 脚本；清理 `.gitignore` 中 `webgui/public/preview/` 行
+- 同步更新文档：README（特性/功能表/Web GUI 章节/目录结构）、USER_MANUAL.md（第 16 章删除 + 17~21 重编号为 16~20）、USER_MANUAL.html（重新生成）、DEMO_SCRIPT.md（场景 5/7 改为纯 AI 方式）
+- 保留 FINAL_SPEC.md 作为历史规格
+- 最终使用路径：AI 客户端通过 MCP 配置直接调用 55 个工具；Cocos 扩展面板负责配置/启停/复制配置。
 
 

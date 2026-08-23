@@ -60,7 +60,7 @@ const ext = require("d:/cocos/spine-mcp-server/cocos-extension/main.js");
   // 面板模板/样式/方法完整性
   const panel = require("d:/cocos/spine-mcp-server/cocos-extension/panel/panel.js");
   report("panel template 非空", typeof panel.template === "string" && panel.template.length > 200);
-  report("panel methods 齐备", ["startServer", "scanProjects", "generateConfig", "copyConfig", "runQuickTool"].every((m) => typeof panel.methods[m] === "function"));
+  report("panel methods 齐备", ["startServer", "scanProjects", "generateConfig", "copyConfig", "getInfo"].every((m) => typeof panel.methods[m] === "function"));
   report("panel ready/close", typeof panel.ready === "function" && typeof panel.close === "function");
 
   // 扩展文件语法检查（通过 require 已隐含加载成功）

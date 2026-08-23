@@ -101,7 +101,7 @@ const template = `
     </div>
   </section>
 
-  <!-- 快速工具 -->
+  <!-- 快速工具（暂注释：工具由 AI 客户端直接调用，面板不提供手动执行入口）
   <section class="sm-section">
     <div class="sm-section-title">🔧 快速工具</div>
     <div class="sm-field">
@@ -110,6 +110,7 @@ const template = `
       <button id="sm-run" class="sm-btn sm-btn-primary">执行</button>
     </div>
   </section>
+  -->
 
   <!-- 操作日志 -->
   <section class="sm-section">
@@ -216,12 +217,14 @@ const methods = {
     });
     this.el.querySelector('#sm-selected').value = this._s.selectedProject || '';
   },
+  /* 快速工具已注释：工具由 AI 客户端直接调用，面板不提供手动执行
   _renderTools() {
     const sel = this.el.querySelector('#sm-tool');
     const tools = this._s.tools || [];
     sel.innerHTML = tools.map((t) => `<option value="${t.name}">${t.label || t.name}</option>`).join('');
     if (this._s.quickTool && tools.some((t) => t.name === this._s.quickTool)) sel.value = this._s.quickTool;
   },
+  */
   _renderAiConfig() {
     this.el.querySelector('#sm-ai-config').value = this._s.aiConfigText || '';
     const g3 = this.el.querySelector('#sm-g3');
@@ -244,11 +247,11 @@ const methods = {
     await this.refreshStatus();
     await this.generateConfig();
     await this.scanProjects();
-    await this.loadTools();
+    // await this.loadTools(); // 快速工具已注释（工具由 AI 客户端直接调用）
     this._renderConfig();
     this._renderStatus();
     this._renderProjects();
-    this._renderTools();
+    // this._renderTools(); // 快速工具已注释
     this._renderAiConfig();
   },
   async loadConfig() {
@@ -437,6 +440,7 @@ const methods = {
       this._pushLogDom('读取信息异常，请查看控制台', 'error');
     }
   },
+  /* 快速工具已注释
   async loadTools() {
     try {
       const r = await Editor.Message.request('spine-mcp-panel', 'spine:list-tools');
@@ -471,6 +475,7 @@ const methods = {
       this._pushLogDom('调用失败：' + (r && r.error), 'error');
     }
   },
+  */
 };
 
 const panelDef = {
@@ -488,7 +493,7 @@ const panelDef = {
     btnBrowseWs: '#sm-browse-ws',
     btnCopyConfig: '#sm-copy-config',
     btnInfo: '#sm-info',
-    btnRun: '#sm-run',
+    // btnRun: '#sm-run', // 快速工具已注释
     btnClearLog: '#sm-clear-log',
     log: '#sm-log',
   },
@@ -524,7 +529,7 @@ const panelDef = {
     (vm.$.btnBrowseWs || $('#sm-browse-ws')).addEventListener('click', () => vm.browseWorkspace());
     (vm.$.btnCopyConfig || $('#sm-copy-config')).addEventListener('click', () => vm.copyConfig());
     (vm.$.btnInfo || $('#sm-info')).addEventListener('click', () => vm.getInfo());
-    (vm.$.btnRun || $('#sm-run')).addEventListener('click', () => vm.runQuickTool());
+    // (vm.$.btnRun || $('#sm-run')).addEventListener('click', () => vm.runQuickTool()); // 快速工具已注释
     (vm.$.btnClearLog || $('#sm-clear-log')).addEventListener('click', () => { $('#sm-log').innerHTML = ''; });
     await vm.refreshAll();
   },

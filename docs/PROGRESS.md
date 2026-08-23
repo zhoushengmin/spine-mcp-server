@@ -622,4 +622,11 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - **工具中文标签**：新增 55 个工具的中文映射 `TOOL_LABELS`，`spine:list-tools` 返回 `{name, label}`，面板下拉框显示中文（如"读取项目信息"），执行仍用英文工具名。
 - **验证**：扩展自测 12/12；`.ccx` 重新打包 13.4 KB。
 
+### 十一次调整（面板精简——注释快速工具，2026-08-23）
+用户提出：快速工具是给 AI 调用的，没必要显示在操作面板上。经确认后**注释**（保留代码便于恢复）：
+- 注释 `panel/panel.js` 中快速工具区块（template）、`$` 选择器 `btnRun`、ready 绑定、`_renderTools/loadTools/runQuickTool` 方法、refreshAll 中的调用
+- 面板保留：基本配置、服务启停、AI 配置复制、项目列表 + 查看信息、操作日志
+- 更新扩展自测（移除 runQuickTool 断言）
+- **验证**：扩展自测 12/12；`.ccx` 重新打包 13.4 KB。
+
 

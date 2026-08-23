@@ -8,6 +8,7 @@ const { allTools } = require("d:/cocos/spine-mcp-server/dist/tools/registry");
 const { exportProject } = require("d:/cocos/spine-mcp-server/dist/spine/export-service");
 const { createTempDir, removeDir } = require("d:/cocos/spine-mcp-server/dist/utils/file-utils");
 const { renderFrame, renderAnimationFrames } = require("d:/cocos/spine-mcp-server/dist/spine/render-service");
+const { renderRuntimeFrame, isRuntimeRenderAvailable } = require("d:/cocos/spine-mcp-server/dist/spine/render-runtime");
 const { encodeGif, encodeLZW, decodeLZW } = require("d:/cocos/spine-mcp-server/dist/utils/gif-encoder");
 const sharp = require("sharp");
 
@@ -55,6 +56,15 @@ function opaqueRatio(buf, w, h) {
     const frames = await renderAnimationFrames(heroJson, HERO_ATLAS, HERO_PNG, "idle", { fps: 8, width: 256, height: 256 });
     report("renderAnimationFrames 帧数", frames.length >= 8, `${frames.length} 帧`);
     report("帧序列非空", frames.length > 0 && opaqueRatio(frames[0].buffer, 256, 256) > 0.02, "首帧应为非空白");
+
+    // 3.5) 官方 Spine runtime 渲染（IK/权重/曲线/变形，所见即所得）
+    report("官方 runtime 可用", isRuntimeRenderAvailable());
+    if (isRuntimeRenderAvailable()) {
+      const rf = await renderRuntimeFrame({ skeletonJsonPath: heroJson, atlasPath: HERO_ATLAS, imagePath: HERO_PNG, animationName: "run-attack", time: 1, width: 256, height: 256 });
+      const ratio = opaqueRatio(rf.rgba, 256, 256);
+      report("官方渲染帧非空白", rf.rgba.length === 256 * 256 * 4 && ratio > 0.02, `占比 ${(ratio * 100).toFixed(2)}%`);
+      report("官方渲染动画名/时间", rf.animationName === "run-attack" && Math.abs(rf.time - 1) < 1e-9, `${rf.animationName}@${rf.time}`);
+    }
 
     // 4) GIF LZW 往返
     const d1 = Array.from({ length: 512 }, (_, i) => i % 8);

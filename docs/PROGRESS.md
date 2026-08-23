@@ -644,4 +644,18 @@ npm run web          # 启动 http://localhost:3000（或 node webgui/server.js�
 - 保留 FINAL_SPEC.md 作为历史规格
 - 最终使用路径：AI 客户端通过 MCP 配置直接调用 55 个工具；Cocos 扩展面板负责配置/启停/复制配置。
 
+### 十三次升级（官方 Spine runtime 渲染 = 所见即所得，2026-08-23）
+用户反馈：自研软件光栅化预览效果差（悬空/不真实），无法"改动画→看效果→调整"，难以交付。
+- **根因**：自研渲染器未实现 IK 约束（hero 的脚靠 IK 落地），且精度不足。
+- **方案（用户确认选 B）**：集成 Esoteric 官方 spine-ts 3.8 runtime（MIT 开源可商用）+ node-canvas。
+  - `vendor/spine-ts/`：官方 spine-canvas.js（内嵌 core，IK/权重/曲线/FFD/混合全官方算法）；因用户是 SpinePro 3.8.75 定制版被官方 runtime 特判拒绝，已跳过两处版本检查。
+  - `src/spine/render-runtime.ts`：官方渲染器（vm 加载 bundle + node-canvas → 自动居中缩放 → PNG/帧数据）。
+  - `render-preview.tool`：提供 atlas+image 时优先官方渲染，失败回退自研。
+  - 新增依赖 `canvas`（node-canvas，Windows 预编译）。
+- **验证**：
+  - 官方渲染 4 关键帧：完整无翻转、**脚部落地**（不再悬空）、动作姿态真实。
+  - 生成官方 GIF（30 帧）；render 自测 17/17（新增 3 项官方渲染用例）。
+  - MCP 服务器为长驻进程，重启/刷新后 render_preview 即走官方渲染。
+  - 自测 hero 动画数 8→9（新增 run-attack 演示动画）。
+
 

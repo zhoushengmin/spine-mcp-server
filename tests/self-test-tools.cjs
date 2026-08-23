@@ -56,7 +56,8 @@ async function withCopy(modifyFn) {
   report("spine_inspect_json", r.success && typeof r.data.tree === "string" && r.data.bones > 0, r.message);
 
   r = await call("spine_list_animations", { projectPath: HERO });
-  report("spine_list_animations", r.success && r.data.animations.length === 8, r.message);
+  // hero-pro 原始 8 动画 + MCP 演示新增的 run-attack = 9
+  report("spine_list_animations", r.success && r.data.animations.length === 9, r.message);
 
   // ===== 2. 导出/导入 =====
   const outDir = path.join(os.tmpdir(), "p3-export");

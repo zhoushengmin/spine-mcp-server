@@ -52,9 +52,13 @@ import { CreateProjectTool } from "./create-project.tool";
 import { ScaleProjectTool } from "./scale-project.tool";
 import { ImportImageTool } from "./import-image.tool";
 import { ExportVideoTool } from "./export-video.tool";
+import { SplitAtlasTool } from "./split-atlas.tool";
+import { RepackAtlasTool } from "./repack-atlas.tool";
+import { BuildSkeletonTool } from "./build-skeleton.tool";
+import { ValidateReferencesTool } from "./validate-references.tool";
 import { RollbackTool } from "./rollback.tool";
 
-/** 全部已注册工具（Phase 3 + Phase 4 = 50 个） */
+/** 全部已注册工具（Phase 3 + Phase 4 + Phase 5 = 54 个） */
 export const allTools: ToolDefinition[] = [
   // —— 信息查询 ——
   new GetProjectInfoTool(),
@@ -112,6 +116,10 @@ export const allTools: ToolDefinition[] = [
   // —— 图片与工具链 ——
   new ImportImageTool(),
   new ExportVideoTool(),
+  new SplitAtlasTool(),
+  new RepackAtlasTool(),
+  new BuildSkeletonTool(),
+  new ValidateReferencesTool(),
   new RollbackTool(),
 ];
 

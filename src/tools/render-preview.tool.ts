@@ -1,40 +1,63 @@
 /**
- * 工具：spine_render_preview — 渲染动画帧为 PNG 预览
- *
- * ⚠️ 说明（Phase 3）：Spine 3.8.75 CLI 的图片导出（class=images）schema 在 CLI 上
- * 不可直接使用（官方示例也只导 json/binary/atlas）。本工具当前尝试 CLI 图片导出，
- * 若失败会返回明确提示；完整渲染方案（JS Spine 运行时）在 Phase 4 实现。
+ * 工具：spine_render_preview — JS 运行时渲染动画单帧为 PNG
+ * 需要项目导出产物：骨架 JSON + .atlas + 图集 png。
  */
 import { z } from "zod";
 import { BaseTool } from "./base.tool";
+import { renderFrame } from "../spine/render-service";
 import { exportProject } from "../spine/export-service";
-import { ensureDir } from "../utils/file-utils";
+import { ensureDir, createTempDir, removeDir } from "../utils/file-utils";
+import * as fs from "fs";
+import * as path from "path";
 
 export class RenderPreviewTool extends BaseTool {
   name = "spine_render_preview";
-  description = "渲染动画为 PNG 图片序列预览（依赖 Spine CLI 图片导出）。当前版本为 Phase 3 占位，完整渲染方案在 Phase 4 提供。";
+  description = "用 JS 运行时渲染 Spine 动画指定帧为 PNG 预览（region 附件；mesh 近似绘制）。可传导出产物路径，或传 .spine 项目自动导出。";
   inputSchema = z.object({
-    projectPath: z.string(),
-    outputDir: z.string(),
+    skeletonJson: z.string().optional().describe("导出的骨架 JSON 路径"),
+    atlasPath: z.string().optional().describe(".atlas 路径"),
+    imagePath: z.string().optional().describe("图集 png 路径"),
+    projectPath: z.string().optional().describe(".spine 项目（未提供产物时自动导出 JSON）"),
     animationName: z.string().optional(),
-    frameIndex: z.number().optional(),
+    time: z.number().min(0).optional().describe("时间（秒）"),
+    frameIndex: z.number().int().min(0).optional(),
+    fps: z.number().int().optional(),
+    outputPath: z.string().describe("输出 png 路径"),
+    width: z.number().int().optional(),
+    height: z.number().int().optional(),
   });
 
-  async run(args: { projectPath: string; outputDir: string; animationName?: string; frameIndex?: number }): Promise<any> {
-    ensureDir(args.outputDir);
+  async run(args: any): Promise<any> {
+    let skeletonJson = args.skeletonJson;
+    const cleanup: string[] = [];
     try {
-      const files = await exportProject(args.projectPath, args.outputDir, {
-        format: "texture",
-        frameCount: args.frameIndex !== undefined ? args.frameIndex + 1 : undefined,
+      if (!skeletonJson) {
+        if (!args.projectPath) {
+          return { success: false, message: "需要 skeletonJson（或 atlasPath+imagePath）或 projectPath。", errorCode: "E_INVALID_ARGUMENT" };
+        }
+        const temp = createTempDir("spine-render-");
+        cleanup.push(temp);
+        const files = await exportProject(args.projectPath, temp, { format: "json" });
+        skeletonJson = files.find((f) => f.endsWith(".json"));
+        if (!skeletonJson) {
+          return { success: false, message: "导出 JSON 失败。", errorCode: "E_CLI_EXEC_FAILED" };
+        }
+      }
+      const result = await renderFrame(skeletonJson, args.atlasPath, args.imagePath, args.outputPath, {
+        animationName: args.animationName,
+        time: args.time,
+        frameIndex: args.frameIndex,
+        fps: args.fps,
+        width: args.width,
+        height: args.height,
       });
-      return { success: true, message: `渲染完成：${files.length} 个文件`, data: { files } };
-    } catch (err) {
       return {
-        success: false,
-        message: "渲染预览依赖 Spine CLI 的图片导出能力，当前版本 3.8.75 的 CLI 图片导出 schema 不可直接使用。",
-        errorCode: "E_CLI_EXEC_FAILED",
-        data: { suggestion: "该功能将在 Phase 4 通过 JS Spine 运行时实现（导出 JSON + 图集后在前端渲染）。", detail: err instanceof Error ? err.message : String(err) },
+        success: true,
+        message: `已渲染 "${result.animationName}" @${result.time}s → ${args.outputPath}（${result.width}x${result.height}，${result.slots} 个附件）`,
+        data: { outputPath: args.outputPath, width: result.width, height: result.height, animationName: result.animationName, time: result.time, slots: result.slots },
       };
+    } finally {
+      cleanup.forEach((d) => removeDir(d));
     }
   }
 }

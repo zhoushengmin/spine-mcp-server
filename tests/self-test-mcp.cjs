@@ -25,7 +25,7 @@ async function main() {
 
   // 1. 列出工具
   const { tools } = await client.listTools();
-  report("listTools 返回工具数", tools.length === 50, `实际 ${tools.length}`);
+  report("listTools 返回工具数", tools.length === 54, `实际 ${tools.length}`);
   const names = tools.map((t) => t.name);
   report("包含 spine_get_project_info", names.includes("spine_get_project_info"));
   report("包含 spine_control_bone", names.includes("spine_control_bone"));

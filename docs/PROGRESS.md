@@ -12,7 +12,7 @@
 | Phase 2 | Spine 3.8.75 核心封装 | ✅ 完成 | project-reader / export / import / json-handler |
 | Phase 3 | MCP 工具开发 - 基础 | ✅ 完成 | server / registry / 21 个基础工具 |
 | Phase 4 | 高级骨骼模块 | ✅ 完成 | 约束 / 网格 / 曲线 / 事件 |
-| Phase 5 | 图片拆分 + 骨骼构建 | ⬜ 未开始 | split_atlas / build_skeleton |
+| Phase 5 | 图片拆分 + 骨骼构建 | ✅ 完成 | split_atlas / build_skeleton / repack_atlas / JS 渲染 |
 | Phase 6 | Cocos 集成 + 面板 UI | ⬜ 未开始 | 扩展面板 / Vue3 |
 | Phase 7 | Web GUI（可选） | ⬜ 未开始 | 可视化面板 |
 | Phase 8 | 测试与文档 | ⬜ 未开始 | 单测 / 集成 / 打包 |
@@ -323,3 +323,39 @@ tests/self-test-mcp.cjs          — MCP 协议级自测（10 断言）
 6. **render_preview / export_video 仍为占位**：Spine 3.8.75 CLI 的图片/视频导出 schema 不可直接使用，完整方案需 JS Spine 运行时渲染（延后至后续阶段，标注在工具描述中）。⚠️
 
 **下一步**：Phase 5（图片拆分 split_atlas + 自动绑骨 build_skeleton + 图集重打包 repack_atlas，含 JS 渲染方案 render_preview 的完整实现）。
+
+---
+
+## Phase 5：图片拆分 + 骨骼构建（已完成）
+
+### 目标
+补齐「立绘 → 骨骼」的关键链路：图集拆分（split_atlas）、部件重打包（repack_atlas）、自动绑骨（build_skeleton）、JS 运行时渲染（render_preview 完善）。工具总数 50 → **54 个**。
+
+### 任务清单
+
+| # | 任务 | 状态 | 验证结果 |
+|---|------|:----:|---------|
+| 5.1 | split_atlas（region 提取 + 透明清理 + 连通域拆分） | ✅ | goblins 41 region / split 模式 118 部件 |
+| 5.2 | repack_atlas（Shelf 排布 → .atlas + png） | ✅ | 8 图打包格式正确 |
+| 5.3 | render_preview（JS 运行时渲染：骨骼矩阵 + 关键帧插值 + 附件合成） | ✅ | hero idle 渲染 512x512，7 附件 12.5% 像素 |
+| 5.4 | build_skeleton（部件→骨骼/插槽/附件，可导入 .spine） | ✅ | grid/list 布局 + 导入成功 |
+| 5.5 | validate_references（引用完整性校验） | ✅ | hero 合法 / 伪造项目检出 3+ 问题 |
+
+### 当前进度明细（2026-08-22 完成 Phase 5）
+
+**新增文件**：atlas-utils（.atlas 解析）、split-atlas-service、repack-atlas-service、render-service、build-skeleton-service + 4 个新工具 + tests/self-test-p5.cjs；重写 render-preview.tool（占位 → 完整实现）
+
+**验证结果**
+| 测试 | 结果 |
+|-------|:--:|
+| Phase 5 自测 tests/self-test-p5.cjs | ✅ 13/13 |
+| Phase 3 回归 tests/self-test-tools.cjs | ✅ 37/37 |
+| Phase 4 回归 tests/self-test-p4.cjs | ✅ 45/45 |
+| MCP 协议 tests/self-test-mcp.cjs | ✅ 10/10（listTools = 54 个工具） |
+
+### ⚠️ 自测发现并修复的问题（重要）
+1. **atlas 解析 region 名被吞**：region 名是裸行，旧逻辑只在 `!currentRegion` 时识别，后续 region 全部丢失（只解析出 1 个）。已改为「每遇到裸行即 flush 前一 region」。✅
+2. **validate_references 不支持 .json 输入**：旧实现总是走 CLI 导出。已加扩展名判断，.json 直接读取。✅
+3. **render_preview 完整实现**：用 sharp 实现骨骼世界矩阵（Spine Bone.update 算法）+ rotate/translate/scale/shear 关键帧线性插值 + region 附件合成。⚠️ 限制：**mesh 附件按未变形 region 近似绘制**（不做顶点扭曲），shear 参与矩阵但绘制只支持旋转/缩放。
+
+**下一步**：Phase 6（Cocos Creator 扩展面板 UI + 场景集成 + .ccx 打包）。

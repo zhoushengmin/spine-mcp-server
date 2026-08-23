@@ -184,9 +184,9 @@ async function withCopy(modifyFn) {
   r = await call("spine_rollback", { projectPath: HERO });
   report("spine_rollback(列备份)", r.success, r.message);
 
-  // ===== 6. render_preview（占位，应返回明确提示）=====
-  r = await call("spine_render_preview", { projectPath: HERO, outputDir: path.join(os.tmpdir(), "p3-preview") });
-  report("spine_render_preview(占位提示)", !r.success && r.data?.suggestion?.includes("Phase 4"), r.message);
+  // ===== 6. render_preview（Phase 5 已实现为 JS 渲染，缺参数应提示）=====
+  r = await call("spine_render_preview", { projectPath: HERO, outputPath: path.join(os.tmpdir(), "p3-preview.png") });
+  report("spine_render_preview(缺 atlas 提示)", !r.success && r.message.includes("图集"), r.message);
 
   // ===== 7. 参数校验错误 =====
   r = await call("spine_control_bone", { projectPath: HERO, animationName: "walk", boneName: "root", frameIndex: -1 });

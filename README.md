@@ -122,7 +122,7 @@ Test matrix: Unit **20/20** · Phase 3 **37/37** · Phase 4 **45/45** · Phase 5
 
 ## 💰 Support
 
-Available on the [Swarms Marketplace](https://swarms.world/mcp/spine-mcp-server)
+Available on the [Swarms Marketplace](https://swarms.world/tool/972c4c25-5487-4939-84b5-7bb534231461)
 
 ## 📄 License
 

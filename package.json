@@ -1,6 +1,6 @@
 {
   "name": "spine-mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI-driven Spine 3.8.75 animation workflow server - 55 MCP tools for Trae, Cursor, Claude Desktop, Codex, Windsurf, Cline and any MCP-compatible AI client",
   "main": "dist/index.js",
   "type": "commonjs",

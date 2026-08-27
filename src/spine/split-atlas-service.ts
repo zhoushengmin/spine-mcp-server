@@ -62,7 +62,7 @@ async function extractRegionPixels(image: sharp.Sharp, region: AtlasRegion): Pro
 }
 
 /** 透明清理：低于阈值 alpha 的像素置为全透明；返回 {buffer, width, height} */
-function cleanAlpha(raw: Buffer, width: number, height: number, threshold: number): Buffer {
+export function cleanAlpha(raw: Buffer, width: number, height: number, threshold: number): Buffer {
   const out = Buffer.from(raw);
   for (let i = 3; i < out.length; i += 4) {
     if (out[i] < threshold) {
@@ -76,7 +76,7 @@ function cleanAlpha(raw: Buffer, width: number, height: number, threshold: numbe
 }
 
 /** 计算非透明包围盒 */
-function bbox(raw: Buffer, width: number, height: number): { x0: number; y0: number; x1: number; y1: number } {
+export function bbox(raw: Buffer, width: number, height: number): { x0: number; y0: number; x1: number; y1: number } {
   let x0 = width, y0 = height, x1 = -1, y1 = -1;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -92,7 +92,7 @@ function bbox(raw: Buffer, width: number, height: number): { x0: number; y0: num
 }
 
 /** 连通域分析：把不透明像素分成若干独立区域（BFS 洪水填充） */
-function findComponents(raw: Buffer, width: number, height: number, minSize: number): Array<{ points: Array<[number, number]> }> {
+export function findComponents(raw: Buffer, width: number, height: number, minSize: number): Array<{ points: Array<[number, number]> }> {
   const visited = new Uint8Array(width * height);
   const components: Array<{ points: Array<[number, number]> }> = [];
   for (let y = 0; y < height; y++) {

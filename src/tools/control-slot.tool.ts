@@ -8,7 +8,7 @@ import { updateSlotKeyframe, frameToTime } from "../spine/json-handler";
 
 export class ControlSlotTool extends BaseTool {
   name = "spine_control_slot";
-  description = "在动画指定帧设置插槽的附件（换装时间轴）或颜色。";
+  description = "在动画指定帧设置插槽的附件（换装时间轴）或颜色。示例：{ projectPath, animationName:\"attack\", slotName:\"eyes\", frameIndex:2, attachmentName:\"eyes-closed\" } → attack 第 2 帧切换闭眼。";
   inputSchema = z.object({
     projectPath: z.string(),
     animationName: z.string(),

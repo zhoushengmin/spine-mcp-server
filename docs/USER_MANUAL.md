@@ -6,7 +6,7 @@
 
 ## 1. 产品介绍
 
-Spine MCP Server 是一个把 Spine 3.8.75 Professional 编辑器能力封装为 **55 个工具** 的服务，让 AI 客户端（Trae、Cursor、Claude Desktop 等）能够直接：
+Spine MCP Server 是一个把 Spine 3.8.75 Professional 编辑器能力封装为 **70 个工具** 的服务，让 AI 客户端（Trae、Cursor、Claude Desktop 等）能够直接：
 
 - 读取和解析 Spine 项目结构
 - 修改动画关键帧与曲线
@@ -91,7 +91,7 @@ LOG_LEVEL=info
 }
 ```
 
-配置后重启客户端，应能看到 55 个 `spine_*` 工具。
+配置后重启客户端，应能看到 70 个 `spine_*` 工具。
 
 > **故障排查**：如果显示 "No tools yet"，说明服务器 stdout 被污染或进程未重启。请**删除配置 → 重启客户端 → 重新添加**。
 
@@ -113,7 +113,7 @@ AI 会调用 `spine_get_project_info` 返回骨骼/插槽/皮肤/动画。
 | `node dist/index.js reader <json>` | 解析导出 JSON |
 | `node dist/index.js mcp` | 启动 MCP 服务器（供客户端调用） |
 
-## 7. 工具详解（55 个）
+## 7. 工具详解（70 个）
 
 ### 7.1 信息查询（8 个）
 
@@ -171,9 +171,9 @@ IK / 变换 / 路径约束各 3 个：`spine_add_*`、`spine_set_*`（setup 或 
 | `spine_scale_project` | 整体缩放 |
 | `spine_rollback` | 备份列表与回滚 |
 
-### 7.7 Cocos 工具链（3 个）
+### 7.7 Cocos 工具链（5 个）
 
-`spine_list_cocos_assets`（扫描工作区）、`spine_validate_references`（引用完整性）、`spine_build_skeleton`（自动绑骨）。
+`spine_list_cocos_assets`（扫描工作区）、`spine_validate_references`（引用完整性）、`spine_build_skeleton`（自动绑骨）、`spine_cut_parts`（散件切割）、`spine_assemble`（AI 装配绑骨）。
 
 ## 8. 实战：读取项目信息
 

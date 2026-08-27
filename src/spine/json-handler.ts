@@ -163,7 +163,7 @@ function findSkin(json: any, skinName: string): any {
 }
 
 /** 确保皮肤存在并返回其 attachments 映射（兼容两种格式） */
-function ensureSkinAttachments(json: any, skinName: string): Record<string, any> {
+export function ensureSkinAttachments(json: any, skinName: string): Record<string, any> {
   if (Array.isArray(json.skins)) {
     let skin = json.skins.find((s: any) => s?.name === skinName);
     if (!skin) {
@@ -991,7 +991,11 @@ export function setCurve(
     if (!bezier) {
       throw new SpineError(ErrorCode.INVALID_ARGUMENT, "bezier 曲线需要提供 c1x/c1y/c2x/c2y。");
     }
-    frame.curve = [bezier.c1x, bezier.c1y, bezier.c2x, bezier.c2y];
+    // Spine 3.8 JSON 对象形式：curve=cx1, c2=cy1, c3=cx2, c4=cy2（数组形式会被 Spine CLI 拒绝）
+    frame.curve = bezier.c1x;
+    frame.c2 = bezier.c1y;
+    frame.c3 = bezier.c2x;
+    frame.c4 = bezier.c2y;
   } else {
     delete frame.curve;
   }

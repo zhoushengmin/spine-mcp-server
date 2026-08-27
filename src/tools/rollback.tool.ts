@@ -10,7 +10,7 @@ import * as path from "path";
 
 export class RollbackTool extends BaseTool {
   name = "spine_rollback";
-  description = "列出某项目全部历史备份；传入 backupId 则回滚到该备份（保留最近 10 次）。";
+  description = "列出某项目全部历史备份；传入 backupId 则回滚到该备份（保留最近 10 次）。每次修改工具都自动备份，出错可用此工具恢复。";
   inputSchema = z.object({
     projectPath: z.string(),
     backupId: z.string().optional().describe("备份文件名（不填则只列出备份）"),

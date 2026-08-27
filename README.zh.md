@@ -10,7 +10,7 @@
 
 ## 📖 简介
 
-**Spine MCP Server** 是一个基于 [MCP（Model Context Protocol）](https://modelcontextprotocol.io) 的服务器，把 **Spine 3.8.75 Professional** 的编辑器能力封装成 55 个工具，让 AI 可以直接：
+**Spine MCP Server** 是一个基于 [MCP（Model Context Protocol）](https://modelcontextprotocol.io) 的服务器，把 **Spine 3.8.75 Professional** 的编辑器能力封装成 70 个工具，让 AI 可以直接：
 
 - 读取 Spine 项目（骨骼 / 插槽 / 皮肤 / 动画 / 事件 / 约束）
 - 修改动画关键帧（旋转 / 位移 / 缩放 / 切变 / 曲线）
@@ -24,7 +24,7 @@
 
 | 能力 | 说明 |
 |---|---|
-| 55 个 MCP 工具 | 覆盖 Spine 全部功能域（信息/骨架/附件/约束/动画/图集/项目） |
+| 70 个 MCP 工具 | 覆盖 Spine 全部功能域（信息/骨架/附件/约束/动画/图集/项目） |
 | Round-Trip 修改 | 导出 JSON → 修改 → 原地导入，**自动备份**（`.bak`） |
 | 版本兼容 | 锁定 Spine 3.8.75，非 3.8.75 友好提示 |
 | Cocos 扩展 | Cocos Creator 3.8+ 可视化面板 + `.ccx` 打包 |
@@ -69,17 +69,18 @@ node dist/index.js info "D:/cocos/SpinePro3.8.75/examples/hero/hero-pro.spine"
 
 > ⚠️ 若 MCP 连接后显示 "No tools yet"，请重启 AI 客户端让服务器进程重新拉起。
 
-## 🧩 工具一览（55 个）
+## 🧩 工具一览（70 个）
 
 | 分类 | 工具 |
 |---|---|
-| 信息查询 (8) | get_project_info · inspect_json · list_animations · list_events · list_constraints · get_attachments · get_animation_detail · render_preview |
-| 骨架结构 (9) | control_bone · add_bone · delete_bone · set_bone · add_slot · delete_slot · set_slot · rename_slot · batch_rename |
-| 附件与皮肤 (6) | set_attachment · add_attachment · delete_attachment · set_attachment_transform · edit_mesh · set_skin |
+| 信息查询 (9) | get_project_info · inspect_json · describe · list_animations · list_events · list_constraints · get_attachments · get_animation_detail · render_preview |
+| 骨架结构 (10) | control_bone · add_bone · delete_bone · set_bone · mirror_bones · add_slot · delete_slot · set_slot · rename_slot · batch_rename |
+| 附件与皮肤 (7) | set_attachment · add_attachment · delete_attachment · set_attachment_transform · edit_mesh · set_skin · import_skin |
 | 约束 (9) | add/set/delete × {ik, transform, path} |
-| 动画 (11) | add_simple_animation · duplicate/delete/rename_animation · set_animation_settings · control_slot · control_constraint · add_event_keyframe · set_draw_order · set_curve · export_video |
+| 动画 (19) | add_simple_animation · generate_animation · list_effects · apply_effect · pose_to_animation · mirror_animation · mix_animations · mesh_wave · export_sheet · duplicate/delete/rename_animation · set_animation_settings · control_slot · control_constraint · add_event_keyframe · set_draw_order · set_curve · export_video |
+| 工作流 (2) | check_project · pipeline |
 | 图集与项目 (9) | split_atlas · repack_atlas · import_image · export · import · clean · create_project · scale_project · rollback |
-| Cocos 工具链 (3) | list_cocos_assets · validate_references · build_skeleton |
+| Cocos 工具链 (5) | list_cocos_assets · validate_references · build_skeleton · cut_parts · assemble |
 
 ## 🎮 Cocos 扩展
 
@@ -111,7 +112,7 @@ npm run test:unit    # 单元测试（node:test）
 ├── src/                  # 源码（TS）
 │   ├── server.ts         # MCP stdio 服务器
 │   ├── spine/            # 核心：cli-executor / json-handler / export / import / render / split ...
-│   ├── tools/            # 55 个工具（registry.ts 注册）
+│   ├── tools/            # 70 个工具（registry.ts 注册）
 │   └── utils/            # 配置 / 日志 / 错误码 / 文件工具
 ├── cocos-extension/      # Cocos Creator 扩展（面板）
 ├── scripts/              # 安装向导 / .ccx 打包

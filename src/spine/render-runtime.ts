@@ -68,6 +68,8 @@ export interface RuntimeFrameOptions {
   time?: number;
   width?: number;
   height?: number;
+  /** 是否叠加骨骼线框 + 关节点（便于 AI 核对绑骨/枢轴） */
+  wireframe?: boolean;
 }
 
 export interface RuntimeFrameResult {
@@ -122,6 +124,26 @@ export async function renderRuntimeFrame(opts: RuntimeFrameOptions): Promise<Run
   ctx.translate(-(minX + maxX) / 2, -(minY + maxY) / 2);
   const renderer = new spineMod.canvas.SkeletonRenderer(ctx);
   renderer.draw(skeleton);
+
+  // 叠加骨骼线框 + 关节点（世界坐标已在当前 ctx 变换空间中）
+  if (opts.wireframe) {
+    ctx.strokeStyle = "rgba(255,90,60,0.95)";
+    ctx.lineWidth = 1.5 / scale;
+    ctx.fillStyle = "rgba(120,200,255,0.95)";
+    for (const b of skeleton.bones) {
+      if (b.parent) {
+        ctx.beginPath();
+        ctx.moveTo(b.parent.worldX, b.parent.worldY);
+        ctx.lineTo(b.worldX, b.worldY);
+        ctx.stroke();
+      }
+    }
+    for (const b of skeleton.bones) {
+      ctx.beginPath();
+      ctx.arc(b.worldX, b.worldY, 3.5 / scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
   return {
     width: W,

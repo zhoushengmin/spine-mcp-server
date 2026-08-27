@@ -10,7 +10,7 @@
 
 ## 📖 Overview
 
-**Spine MCP Server** is a server built on the [MCP (Model Context Protocol)](https://modelcontextprotocol.io) that wraps **Spine 3.8.75 Professional** editor capabilities into **55 MCP tools**, allowing AI clients to directly:
+**Spine MCP Server** is a server built on the [MCP (Model Context Protocol)](https://modelcontextprotocol.io) that wraps **Spine 3.8.75 Professional** editor capabilities into **70 MCP tools**, allowing AI clients to directly:
 
 - Read Spine projects (bones, slots, skins, animations, events, constraints)
 - Modify animation keyframes (rotation, translation, scale, shear, curves)
@@ -24,7 +24,7 @@
 
 | Capability | Description |
 |---|---|
-| 55 MCP Tools | Covers all Spine domains (info, skeleton, attachments, constraints, animation, atlas, project) |
+| 70 MCP Tools | Covers all Spine domains (info, skeleton, attachments, constraints, animation, atlas, project) |
 | Round-Trip Modification | Export JSON → Modify → In-place import, **automatic backup** (`.bak`) |
 | Version Compatibility | Locked to Spine 3.8.75, friendly warnings for other versions |
 | Cocos Extension | Cocos Creator 3.8+ visual panel + `.ccx` packaging |
@@ -69,17 +69,18 @@ Add the following configuration to your Trae / Cursor / Claude Desktop MCP serve
 
 > ⚠️ If MCP shows "No tools yet", restart your AI client to allow the server process to reload.
 
-## 🧩 Tools (55)
+## 🧩 Tools (70)
 
 | Category | Tools |
 |---|---|
-| Information (8) | get_project_info · inspect_json · list_animations · list_events · list_constraints · get_attachments · get_animation_detail · render_preview |
-| Skeleton Structure (9) | control_bone · add_bone · delete_bone · set_bone · add_slot · delete_slot · set_slot · rename_slot · batch_rename |
-| Attachments & Skins (6) | set_attachment · add_attachment · delete_attachment · set_attachment_transform · edit_mesh · set_skin |
+| Information (9) | get_project_info · inspect_json · describe · list_animations · list_events · list_constraints · get_attachments · get_animation_detail · render_preview |
+| Skeleton Structure (10) | control_bone · add_bone · delete_bone · set_bone · mirror_bones · add_slot · delete_slot · set_slot · rename_slot · batch_rename |
+| Attachments & Skins (7) | set_attachment · add_attachment · delete_attachment · set_attachment_transform · edit_mesh · set_skin · import_skin |
 | Constraints (9) | add/set/delete × {ik, transform, path} |
-| Animation (11) | add_simple_animation · duplicate/delete/rename_animation · set_animation_settings · control_slot · control_constraint · add_event_keyframe · set_draw_order · set_curve · export_video |
+| Animation (19) | add_simple_animation · generate_animation · list_effects · apply_effect · pose_to_animation · mirror_animation · mix_animations · mesh_wave · export_sheet · duplicate/delete/rename_animation · set_animation_settings · control_slot · control_constraint · add_event_keyframe · set_draw_order · set_curve · export_video |
+| Workflow (2) | check_project · pipeline |
 | Atlas & Project (9) | split_atlas · repack_atlas · import_image · export · import · clean · create_project · scale_project · rollback |
-| Cocos Toolchain (3) | list_cocos_assets · validate_references · build_skeleton |
+| Cocos Toolchain (5) | list_cocos_assets · validate_references · build_skeleton · cut_parts · assemble |
 
 ## 🎮 Cocos Extension
 
@@ -96,7 +97,7 @@ npm run test:all     # Run all test suites (unit + integration + MCP protocol + 
 npm run test:unit    # Unit tests only (node:test)
 ```
 
-Test matrix: Unit **20/20** · Phase 3 **37/37** · Phase 4 **45/45** · Phase 5 **13/13** · MCP Protocol **10/10** (55 tools) · Extension Bridge **12/12**
+Test matrix: Unit **20/20** · Phase 3 **37/37** · Phase 4 **45/45** · Phase 5 **13/13** · MCP Protocol **10/10** (70 tools) · Extension Bridge **12/12**
 
 ## 📚 Docs
 
@@ -112,7 +113,7 @@ Test matrix: Unit **20/20** · Phase 3 **37/37** · Phase 4 **45/45** · Phase 5
 ├── src/                  # Source code (TypeScript)
 │   ├── server.ts         # MCP stdio server
 │   ├── spine/            # Core: cli-executor / json-handler / export / import / render / split ...
-│   ├── tools/            # 55 tools (registered in registry.ts)
+│   ├── tools/            # 70 tools (registered in registry.ts)
 │   └── utils/            # Config / logger / error codes / file utilities
 ├── cocos-extension/      # Cocos Creator extension (panel)
 ├── scripts/              # Installer wizard / .ccx packaging

@@ -5,6 +5,7 @@
 import { ToolDefinition } from "./base.tool";
 import { GetProjectInfoTool } from "./info.tool";
 import { InspectJsonTool } from "./inspect.tool";
+import { DescribeTool } from "./describe.tool";
 import { ListAnimationsTool } from "./list-animations.tool";
 import { ListEventsTool } from "./list-events.tool";
 import { ListConstraintsTool } from "./list-constraints.tool";
@@ -55,6 +56,20 @@ import { ExportVideoTool } from "./export-video.tool";
 import { SplitAtlasTool } from "./split-atlas.tool";
 import { RepackAtlasTool } from "./repack-atlas.tool";
 import { BuildSkeletonTool } from "./build-skeleton.tool";
+import { CutPartsTool } from "./cut-parts.tool";
+import { AssembleTool } from "./assemble.tool";
+import { GenerateAnimationTool } from "./generate-animation.tool";
+import { ListEffectsTool } from "./list-effects.tool";
+import { ApplyEffectTool } from "./apply-effect.tool";
+import { MirrorBonesTool } from "./mirror-bones.tool";
+import { MeshWaveTool } from "./mesh-wave.tool";
+import { ImportSkinTool } from "./import-skin.tool";
+import { PoseAnimationTool } from "./pose-animation.tool";
+import { MirrorAnimationTool } from "./mirror-animation.tool";
+import { MixAnimationsTool } from "./mix-animations.tool";
+import { CheckProjectTool } from "./check-project.tool";
+import { ExportSheetTool } from "./export-sheet.tool";
+import { PipelineTool } from "./pipeline.tool";
 import { ValidateReferencesTool } from "./validate-references.tool";
 import { ListCocosAssetsTool } from "./list-cocos-assets.tool";
 import { RollbackTool } from "./rollback.tool";
@@ -64,6 +79,7 @@ export const allTools: ToolDefinition[] = [
   // —— 信息查询 ——
   new GetProjectInfoTool(),
   new InspectJsonTool(),
+  new DescribeTool(),
   new ListAnimationsTool(),
   new ListEventsTool(),
   new ListConstraintsTool(),
@@ -120,6 +136,20 @@ export const allTools: ToolDefinition[] = [
   new SplitAtlasTool(),
   new RepackAtlasTool(),
   new BuildSkeletonTool(),
+  new CutPartsTool(),
+  new AssembleTool(),
+  new GenerateAnimationTool(),
+  new ListEffectsTool(),
+  new ApplyEffectTool(),
+  new MirrorBonesTool(),
+  new MeshWaveTool(),
+  new ImportSkinTool(),
+  new PoseAnimationTool(),
+  new MirrorAnimationTool(),
+  new MixAnimationsTool(),
+  new CheckProjectTool(),
+  new ExportSheetTool(),
+  new PipelineTool(),
   new ValidateReferencesTool(),
   new ListCocosAssetsTool(),
   new RollbackTool(),

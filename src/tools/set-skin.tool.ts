@@ -8,7 +8,7 @@ import { addSkin, renameSkin, deleteSkin, setDefaultSkin } from "../spine/json-h
 
 export class SetSkinTool extends BaseTool {
   name = "spine_set_skin";
-  description = "皮肤管理：create（新建）/ rename（重命名）/ delete（删除）/ setDefault（设置默认皮肤）。";
+  description = "皮肤管理：create（新建）/ rename（重命名）/ delete（删除）/ setDefault（设置默认皮肤）。示例：{ projectPath, action:\"create\", skinName:\"armor\" } → 新建皮肤 armor 用于换装。";
   inputSchema = z.object({
     projectPath: z.string(),
     action: z.enum(["create", "rename", "delete", "setDefault"]),

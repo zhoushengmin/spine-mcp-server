@@ -26,6 +26,7 @@ export const TOOL_NAMES = {
   // 7.1 信息查询
   GET_PROJECT_INFO: "spine_get_project_info",
   INSPECT_JSON: "spine_inspect_json",
+  DESCRIBE: "spine_describe",
   LIST_ANIMATIONS: "spine_list_animations",
   LIST_EVENTS: "spine_list_events",
   LIST_CONSTRAINTS: "spine_list_constraints",
@@ -86,5 +87,19 @@ export const TOOL_NAMES = {
   // 7.9 Cocos 集成与工具链
   LIST_COCOS_ASSETS: "spine_list_cocos_assets",
   VALIDATE_REFERENCES: "spine_validate_references",
+  CUT_PARTS: "spine_cut_parts",
+  ASSEMBLE: "spine_assemble",
+  GENERATE_ANIMATION: "spine_generate_animation",
+  LIST_EFFECTS: "spine_list_effects",
+  APPLY_EFFECT: "spine_apply_effect",
+  MIRROR_BONES: "spine_mirror_bones",
+  MESH_WAVE: "spine_mesh_wave",
+  IMPORT_SKIN: "spine_import_skin",
+  POSE_ANIMATION: "spine_pose_to_animation",
+  MIRROR_ANIMATION: "spine_mirror_animation",
+  MIX_ANIMATIONS: "spine_mix_animations",
+  CHECK_PROJECT: "spine_check_project",
+  EXPORT_SHEET: "spine_export_sheet",
+  PIPELINE: "spine_pipeline",
   ROLLBACK: "spine_rollback",
 } as const;

@@ -9,6 +9,7 @@ import { importJsonInPlace } from "./import-service";
 import { getSkeletonName, getProjectInfo } from "./info-service";
 import { readJsonFile, writeJsonFile, createTempDir, removeDir, ensureDir } from "../utils/file-utils";
 import { ErrorCode, SpineError } from "../utils/error-codes";
+import { validateJsonReferences } from "./validate-service";
 
 export interface ModifyResult {
   /** 备份文件路径 */
@@ -17,6 +18,8 @@ export interface ModifyResult {
   skeletonName: string;
   /** fps（Info 命令） */
   fps: number;
+  /** 修改后自动引用校验发现的问题（空数组 = 无问题） */
+  warnings: string[];
 }
 
 /**
@@ -44,9 +47,10 @@ export async function modifyProject(
       throw new SpineError(ErrorCode.CLI_EXEC_FAILED, "导出未产生 JSON 文件。");
     }
 
-    // 2. 修改
+    // 2. 修改 + 自动引用校验（安全网：提前暴露悬空引用）
     const json = readJsonFile(jsonFile);
     modifyFn(json);
+    const warnings = validateJsonReferences(json);
     writeJsonFile(jsonFile, json);
 
     // 3. 骨架名 + fps
@@ -58,7 +62,7 @@ export async function modifyProject(
 
     // 4. 原地导入替换（自动备份）
     const result = await importJsonInPlace(projectPath, jsonFile, name);
-    return { backupPath: result.backupPath, skeletonName: name, fps: info.fps || 30 };
+    return { backupPath: result.backupPath, skeletonName: name, fps: info.fps || 30, warnings };
   } finally {
     removeDir(tempDir);
   }

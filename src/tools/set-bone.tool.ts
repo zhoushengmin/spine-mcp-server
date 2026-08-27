@@ -8,7 +8,7 @@ import { setBone } from "../spine/json-handler";
 
 export class SetBoneTool extends BaseTool {
   name = "spine_set_bone";
-  description = "设置骨骼 Setup 姿态属性（位置/旋转/缩放/切变/长度/transformMode/颜色）。影响默认姿态，非动画关键帧。";
+  description = "设置骨骼 Setup 姿态属性（位置/旋转/缩放/切变/长度/transformMode/颜色）。影响默认姿态，非动画关键帧。示例：{ projectPath, name:\"arm_r\", rotation:30 } → 把 arm_r 默认旋转 30°（摆 pose 用）。";
   inputSchema = z.object({
     projectPath: z.string(),
     boneName: z.string(),

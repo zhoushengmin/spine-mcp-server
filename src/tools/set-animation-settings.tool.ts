@@ -8,7 +8,7 @@ import { scaleAnimationDuration } from "../spine/json-handler";
 
 export class SetAnimationSettingsTool extends BaseTool {
   name = "spine_set_animation_settings";
-  description = "调整动画时长：按目标时长缩放全部时间轴关键帧的时间。";
+  description = "调整动画时长：按目标时长缩放全部时间轴关键帧的时间。示例：{ projectPath, animationName:\"attack\", duration:0.8 } → 把 attack 整体缩到 0.8 秒（加速/减速）。";
   inputSchema = z.object({
     projectPath: z.string(),
     animationName: z.string(),

@@ -131,7 +131,10 @@ test('setCurve 支持 stepped / bezier / linear', () => {
   h.setCurve(json, 'a', 'bones.root.rotate', 0, 'stepped');
   assert.equal(json.animations.a.bones.root.rotate[0].curve, 'stepped');
   h.setCurve(json, 'a', 'bones.root.rotate', 0, 'bezier', { c1x: 0.1, c1y: 0.1, c2x: 0.9, c2y: 0.9 });
-  assert.deepEqual(json.animations.a.bones.root.rotate[0].curve, [0.1, 0.1, 0.9, 0.9]);
+  assert.equal(json.animations.a.bones.root.rotate[0].curve, 0.1, 'bezier cx1');
+  assert.equal(json.animations.a.bones.root.rotate[0].c2, 0.1, 'bezier cy1');
+  assert.equal(json.animations.a.bones.root.rotate[0].c3, 0.9, 'bezier cx2');
+  assert.equal(json.animations.a.bones.root.rotate[0].c4, 0.9, 'bezier cy2');
   h.setCurve(json, 'a', 'bones.root.rotate', 0, 'linear');
   assert.ok(!json.animations.a.bones.root.rotate[0].curve, 'linear 应删除 curve 字段');
 });

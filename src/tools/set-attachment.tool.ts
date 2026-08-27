@@ -8,7 +8,7 @@ import { setAttachment } from "../spine/json-handler";
 
 export class SetAttachmentTool extends BaseTool {
   name = "spine_set_attachment";
-  description = "设置/切换指定插槽的附件（换装/换武器/换表情）。attachmentName 传空字符串表示隐藏该插槽。";
+  description = "设置/切换指定插槽的附件（换装/换武器/换表情）。attachmentName 传空字符串表示隐藏该插槽。示例：{ projectPath, slotName:\"weapon\", attachmentName:\"sword\" } → 把武器插槽换成剑。";
   inputSchema = z.object({
     projectPath: z.string(),
     slotName: z.string(),

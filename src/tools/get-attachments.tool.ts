@@ -9,7 +9,7 @@ import * as path from "path";
 
 export class GetAttachmentsTool extends BaseTool {
   name = "spine_get_attachments";
-  description = "列出指定插槽（或整个皮肤）可用的所有附件及类型。";
+  description = "列出指定插槽（或整个皮肤）可用的所有附件及类型。示例：{ projectPath, slotName:\"weapon\" } → 列出 weapon 插槽可切换的武器附件名。";
   inputSchema = z.object({
     projectPath: z.string().describe(".spine 项目或 .json 文件的绝对路径"),
     slotName: z.string().optional().describe("指定插槽（不填则列出全部插槽）"),

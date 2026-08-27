@@ -44,7 +44,7 @@
     "package:ccx": "node scripts/package-ccx.js",
     "manual:html": "node scripts/gen-manual-html.js",
     "test:unit": "node --test tests/unit-tests.mjs",
-    "test:all": "node --test tests/unit-tests.mjs && node tests/self-test-tools.cjs && node tests/self-test-p4.cjs && node tests/self-test-p5.cjs && node tests/self-test-render.cjs && node tests/self-test-mcp.cjs && node tests/self-test-extension.cjs",
+    "test:all": "node --test tests/unit-tests.mjs && node tests/self-test-tools.cjs && node tests/self-test-p4.cjs && node tests/self-test-p5.cjs && node tests/self-test-cut-assemble.cjs && node tests/self-test-generate-anim.cjs && node tests/self-test-visualize.cjs && node tests/self-test-effects.cjs && node tests/self-test-mirror-skin-wave.cjs && node tests/self-test-pipeline-plus.cjs && node tests/self-test-render.cjs && node tests/self-test-mcp.cjs && node tests/self-test-extension.cjs",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "license": "MIT",

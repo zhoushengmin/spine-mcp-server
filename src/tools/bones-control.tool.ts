@@ -10,7 +10,7 @@ import { BoneKeyframeChange } from "../types";
 export class BonesControlTool extends BaseTool {
   name = "spine_control_bone";
   description =
-    "修改指定骨骼在动画特定帧的变换（旋转/位移/缩放/切变）。通过 导出→改关键帧→原地导入 完成，导入前自动备份。";
+    "修改指定骨骼在动画特定帧的变换（旋转/位移/缩放/切变）。通过 导出→改关键帧→原地导入 完成，导入前自动备份。示例：{ projectPath, animationName:\"idle\", boneName:\"head\", frameIndex:0, rotation:15 } → head 在第 0 帧旋转 15°。";
   inputSchema = z.object({
     projectPath: z.string(),
     animationName: z.string(),

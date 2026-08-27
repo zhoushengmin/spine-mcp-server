@@ -9,7 +9,7 @@ import * as path from "path";
 
 export class ListAnimationsTool extends BaseTool {
   name = "spine_list_animations";
-  description = "列出项目中所有动画：名称、时长（秒）、关键帧总数。";
+  description = "列出项目中所有动画：名称、时长（秒）、关键帧总数。示例：{ projectPath } → [{name:\"idle\", duration:1, keyframeCount:81}, ...]。";
   inputSchema = z.object({
     projectPath: z.string().describe(".spine 项目或 .json 文件的绝对路径"),
   });

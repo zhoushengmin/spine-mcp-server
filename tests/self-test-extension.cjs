@@ -34,7 +34,7 @@ const ext = require("d:/cocos/spine-mcp-server/cocos-extension/main.js");
 
   // 工具列表
   r = await ext.methods["spine:list-tools"]();
-  report("list-tools（55 个）", r.ok && r.tools.length === 55, `实际 ${r.tools?.length}`);
+  report("list-tools（70 个）", r.ok && r.tools.length === 70, `实际 ${r.tools?.length}`);
 
   // 运行只读工具
   r = await ext.methods["spine:get-info"]("D:/cocos/SpinePro3.8.75/examples/hero/hero-pro.spine");

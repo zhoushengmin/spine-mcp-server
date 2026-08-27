@@ -6,7 +6,7 @@ Version: 1.0.0 | Spine 3.8.75 | Last updated: 2026-08
 
 ## 1. Introduction
 
-Spine MCP Server wraps **Spine 3.8.75 Professional** editor capabilities into **55 MCP tools**, enabling AI clients (Trae, Cursor, Claude Desktop, etc.) to directly:
+Spine MCP Server wraps **Spine 3.8.75 Professional** editor capabilities into **70 MCP tools**, enabling AI clients (Trae, Cursor, Claude Desktop, etc.) to directly:
 
 - Read and parse Spine project structures
 - Modify animation keyframes and curves
@@ -93,7 +93,7 @@ Add the following to your client's MCP server configuration:
 }
 ```
 
-After configuration, restart the client. You should see 55 `spine_*` tools available.
+After configuration, restart the client. You should see 70 `spine_*` tools available.
 
 > **Troubleshooting**: If "No tools yet" appears, the server stdout may be polluted or the process hasn't restarted. **Delete the config → Restart the client → Re-add the config**.
 
@@ -115,7 +115,7 @@ The AI will call `spine_get_project_info` and return structured data about bones
 | `node dist/index.js reader <json>` | Parse exported JSON |
 | `node dist/index.js mcp` | Start MCP server (for AI client connections) |
 
-## 7. Tool Reference (55 Tools)
+## 7. Tool Reference (70 Tools)
 
 ### 7.1 Information Queries (8 tools)
 
@@ -173,9 +173,9 @@ IK / Transform / Path constraints each have 3 tools: `spine_add_*`, `spine_set_*
 | `spine_scale_project` | Global scale |
 | `spine_rollback` | List backups and rollback |
 
-### 7.7 Cocos Toolchain (3 tools)
+### 7.7 Cocos Toolchain (5 tools)
 
-`spine_list_cocos_assets` (scan workspace), `spine_validate_references` (reference integrity), `spine_build_skeleton` (auto-rigging).
+`spine_list_cocos_assets` (scan workspace), `spine_validate_references` (reference integrity), `spine_build_skeleton` (auto-rigging), `spine_cut_parts` (scattered-part cutting), `spine_assemble` (AI assembly rigging).
 
 ## 8. Walkthrough: Reading Project Info
 

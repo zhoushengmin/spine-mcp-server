@@ -8,7 +8,7 @@ import { setDrawOrder } from "../spine/json-handler";
 
 export class SetDrawOrderTool extends BaseTool {
   name = "spine_set_draw_order";
-  description = "在动画指定时间设置插槽绘制顺序关键帧。slots 为按新顺序排列的插槽名数组。";
+  description = "在动画指定时间设置插槽绘制顺序关键帧。slots 为按新顺序排列的插槽名数组。示例：{ projectPath, animationName:\"idle\", time:0, slots:[\"back\",\"body\",\"front\"] } → 前后层次重排。";
   inputSchema = z.object({
     projectPath: z.string(),
     animationName: z.string(),

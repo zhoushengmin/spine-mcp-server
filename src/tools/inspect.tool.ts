@@ -18,7 +18,7 @@ function boneTreeText(bone: any, depth: number, lines: string[]): void {
 
 export class InspectJsonTool extends BaseTool {
   name = "spine_inspect_json";
-  description = "深度分析 .spine/.json 的骨骼层级结构，返回树形描述文本与统计（骨骼/插槽/皮肤/约束/动画数）。";
+  description = "深度分析 .spine/.json 的骨骼层级结构，返回树形描述文本与统计（骨骼/插槽/皮肤/约束/动画数）。比 get_project_info 更偏层级树，适合理解父子关系。";
   inputSchema = z.object({
     projectPath: z.string().describe(".spine 项目或 .json 文件的绝对路径"),
   });

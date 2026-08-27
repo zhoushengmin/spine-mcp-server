@@ -15,12 +15,6 @@
     "installer": "node scripts/installer.js",
     "package:ccx": "node scripts/package-ccx.js",
     "manual:html": "node scripts/gen-manual-html.js",
-    "test:p3": "node tests/self-test-tools.cjs",
-    "test:p4": "node tests/self-test-p4.cjs",
-    "test:p5": "node tests/self-test-p5.cjs",
-    "test:render": "node tests/self-test-render.cjs",
-    "test:mcp": "node tests/self-test-mcp.cjs",
-    "test:ext": "node tests/self-test-extension.cjs",
     "test:unit": "node --test tests/unit-tests.mjs",
     "test:all": "node --test tests/unit-tests.mjs && node tests/self-test-tools.cjs && node tests/self-test-p4.cjs && node tests/self-test-p5.cjs && node tests/self-test-render.cjs && node tests/self-test-mcp.cjs && node tests/self-test-extension.cjs",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""

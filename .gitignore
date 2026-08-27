@@ -7,3 +7,5 @@ out/
 .env.local
 *.bak
 .DS_Store
+docs/FINAL_SPEC.md
+docs/USER_MANUAL.html

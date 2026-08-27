@@ -121,7 +121,7 @@ npm run test:unit    # 单元测试（node:test）
 
 ## 💰 购买支持
 
-在 [Swarms Marketplace](https://swarms.world/tool/972c4c25-5487-4939-84b5-7bb534231461) 购买支持本项目
+在 [Swarms Marketplace](https://swarms.world/agent/c44211d8-0ed5-4948-8c4e-10e63f465bc3) 购买支持本项目
 
 ## 📄 License
 

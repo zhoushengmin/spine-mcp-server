@@ -122,7 +122,7 @@ Test matrix: Unit **20/20** · Phase 3 **37/37** · Phase 4 **45/45** · Phase 5
 
 ## 💰 Support
 
-Available on the [Swarms Marketplace](https://swarms.world/tool/972c4c25-5487-4939-84b5-7bb534231461)
+Available on the [Swarms Marketplace](https://swarms.world/agent/c44211d8-0ed5-4948-8c4e-10e63f465bc3)
 
 ## 📄 License
 

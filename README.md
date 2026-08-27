@@ -1,5 +1,7 @@
 # 🦴 Spine MCP Server
 
+[![中文](https://img.shields.io/badge/lang-中文-red)](README.zh.md) [![EN](https://img.shields.io/badge/lang-EN-blue)](README.md)
+
 > AI-driven Spine 3.8.75 animation workflow server — lets AI clients (Trae / Cursor / Claude Desktop) directly control Spine.
 
 [![Node](https://img.shields.io/badge/Node-%3E%3D20-339933)](https://nodejs.org) [![Spine](https://img.shields.io/badge/Spine-3.8.75-yellow)](https://esotericsoftware.com) [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)

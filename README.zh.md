@@ -1,5 +1,7 @@
 # 🦴 Spine MCP Server
 
+[![中文](https://img.shields.io/badge/lang-中文-red)](README.zh.md) [![EN](https://img.shields.io/badge/lang-EN-blue)](README.md)
+
 > AI 驱动的 Spine 3.8.75 动画工作流服务 · 供 Trae / Cursor / Claude Desktop / Codex / Windsurf / Cline 等 AI 客户端直接调用 Spine 编辑器能力
 
 [![Node](https://img.shields.io/badge/Node-%3E%3D20-339933)](https://nodejs.org) [![Spine](https://img.shields.io/badge/Spine-3.8.75-yellow)](https://esotericsoftware.com) [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)

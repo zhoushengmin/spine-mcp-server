@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * spine-mcp-server 入口（Phase 1 基础设施 + Phase 2 核心封装自测）
  *
